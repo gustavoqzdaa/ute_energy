@@ -1,0 +1,19 @@
+{
+  "domain": "ute_energy",
+  "name": "UTE Energy",
+  "codeowners": [
+    "@gustavoqzdaa"
+  ],
+  "config_flow": true,
+  "dependencies": [],
+  "documentation": "https://www.home-assistant.io/integrations/ute_energy",
+  "homekit": {},
+  "iot_class": "cloud_polling",
+  "integration_type": "service",
+  "requirements": [
+    "requests==2.28.2"
+  ],
+  "ssdp": [],
+  "zeroconf": [],
+  "version": "0.0.1"
+}

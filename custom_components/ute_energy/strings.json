@@ -1,0 +1,46 @@
+{
+  "config": {
+    "flow_title": "{name}",
+    "step": {
+      "auth": {
+        "description": "Input the email and phone registered on UTE.",
+        "data": {
+          "email": "[%key:common::config_flow::data::email%]",
+          "phone": "[%key:common::config_flow::data::phone%]"
+        }
+      },
+      "code": {
+        "description": "Input SMS code",
+        "data": {
+          "auth_code": "[%key:common::config_flow::data::code%]"
+        }
+      },
+      "select": {
+        "data": {
+          "select_account": "UTE service account"
+        },
+        "description": "Select a UTE service account to set up."
+    }
+    },
+    "error": {
+      "cannot_connect": "[%key:common::config_flow::error::cannot_connect%]",
+      "invalid_auth": "[%key:common::config_flow::error::invalid_auth%]",
+      "unknown": "[%key:common::config_flow::error::unknown%]"
+    },
+    "abort": {
+      "already_configured": "[%key:common::config_flow::abort::already_configured_device%]"
+    },
+    "options": {
+      "error": {
+        "credentials_incomplete": "User credentials incomplete, please fill in email and phone"
+      },
+      "step": {
+        "init": {
+          "data": {
+            "user_accounts": "User accounts"
+          }
+        }
+      }
+    },
+  }
+}

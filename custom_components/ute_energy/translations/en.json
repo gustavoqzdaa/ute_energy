@@ -1,0 +1,33 @@
+{
+    "config": {
+        "abort": {
+            "already_configured": "Device is already configured"
+        },
+        "error": {
+            "cannot_connect": "Failed to connect",
+            "invalid_auth": "Invalid authentication",
+            "unknown": "Unexpected error"
+        },
+        "step": {
+            "auth": {
+                "description": "Input the email and phone registered on UTE. Phone shuould be like '598123456'",
+                "data": {
+                    "email": "Email",
+                    "phone": "Phone"
+                }
+            },
+            "code": {
+                "description": "Input SMS code",
+                "data": {
+                    "auth_code": "Code"
+                }
+            },
+            "select": {
+                "data": {
+                  "select_account": "UTE service account"
+                },
+                "description": "Select a UTE service account to set up."
+            }
+        }
+    }
+}
