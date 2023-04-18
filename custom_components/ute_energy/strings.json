@@ -17,14 +17,16 @@
       },
       "select": {
         "data": {
-          "select_account": "UTE service account"
+          "select_account": "Accounts"
         },
-        "description": "Select a UTE service account to set up."
-    }
+        "description": "Select a service account"
+      }
     },
     "error": {
+      "user_no_accounts": "The user doesn't have any UTE services enabled.",
       "cannot_connect": "[%key:common::config_flow::error::cannot_connect%]",
       "invalid_auth": "[%key:common::config_flow::error::invalid_auth%]",
+      "user_credentials_incomplete": "Email or phone cannot be null",
       "unknown": "[%key:common::config_flow::error::unknown%]"
     },
     "abort": {

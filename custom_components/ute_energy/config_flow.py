@@ -3,39 +3,38 @@ from __future__ import annotations
 
 import logging
 from typing import Any
-from async_timeout import timeout
 import voluptuous as vol
 
 from .exceptions import UteApiAccessDenied
 
-# import json
-
 from .ute_energy import UteEnergy
-
-# from .exceptions import InvalidRequestDataError, ApiError, UteApiAccessDenied
 
 from homeassistant import config_entries
 from homeassistant.config_entries import SOURCE_REAUTH, ConfigEntry
-from homeassistant.core import HomeAssistant, callback
+from homeassistant.core import callback
 from homeassistant.data_entry_flow import FlowResult
 from homeassistant.exceptions import HomeAssistantError
-from homeassistant.helpers.aiohttp_client import async_create_clientsession
+from homeassistant.const import CONF_BASE
 
 from .const import (
     DOMAIN,
-    BASE_URL,
     CONF_USER_ACCOUNTS,
     CONF_USER_EMAIL,
     CONF_USER_PHONE,
     CONF_AUTH_CODE,
     DEFAULT_USER_PHONE,
     ACCOUNT_SERVICE_POINT_ID,
+    RESPONSE_RESULT,
+    RESPONSE_STATUS,
+    ACCOUNT_SERVICE_POINT_ADDRESS,
+    AGREEMENT_INFO,
+    ACCOUNT_ID,
 )
 
 
 _LOGGER = logging.getLogger(__name__)
 
-# TODO adjust the data schema to the data that you need
+# TODO adjust the data schema to the data that you need # pylint: disable=fixme
 AUTH_CONFIG = vol.Schema(
     {
         vol.Required(CONF_USER_EMAIL): str,
@@ -43,65 +42,8 @@ AUTH_CONFIG = vol.Schema(
     }
 )
 
+
 VALIDATE_CODE = vol.Schema({vol.Required(CONF_AUTH_CODE): str})
-
-
-class PlaceholderHub:
-    """Placeholder class to make tests pass.
-
-    TODO Remove this placeholder class and replace with things from your PyPI package.
-    """
-
-    def __init__(self, hass: HomeAssistant, host: str) -> None:
-        """Initialize."""
-        self.hass = hass
-        self.host = host
-
-    async def authenticate(self, email: str, phone: str) -> str:
-        """Test if we can authenticate with the host."""
-
-        clientsession = async_create_clientsession(self.hass, verify_ssl=False)
-        async with timeout(10):
-            ute_energy = UteEnergy(email, phone, clientsession)
-            code = await ute_energy.get_auth_code()
-
-        return code
-
-
-async def validate_input(data: dict[str, Any]) -> None:
-    """Validate the user input allows us to connect.
-
-    Data has the keys from step_user_data_schema with values provided by the user.
-    """
-    # TODO validate the data can be used to set up a connection.
-
-    # If your PyPI package is not built with async, pass your methods
-    # to the executor:
-    # await hass.async_add_executor_job(
-    #     your_validate_func, data["email"], data["phone"]
-    # )
-
-
-async def authenticate(hass: HomeAssistant, data: dict[str, Any]) -> str:
-    """Retrieve token from UTE API"""
-    hub = PlaceholderHub(hass, BASE_URL)
-
-    code = await hub.authenticate(data["email"], data["phone"])
-
-    # If you cannot connect:
-    # throw CannotConnect
-    # If the authentication is wrong:
-    # InvalidAuth
-
-    # Return info that you want to store in the config entry.
-    # return {"title": "UTE Energy"}
-    return code
-
-
-async def validate_code(user_input: dict[str, Any]) -> bool:
-    """Validate the authentication code."""
-    _LOGGER.info("Message from validate code")
-    return True
 
 
 class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
@@ -116,6 +58,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         self.phone = None
         self.code = None
         self.connection = None
+        self.account: dict[str, Any] = {}
         self.user_accounts: dict[str, dict[str, Any]] = {}
 
     @staticmethod
@@ -143,7 +86,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             user_phone = user_input.get(CONF_USER_PHONE)
 
             if not user_email or not user_phone:
-                errors["base"] = "user_credentials_incomplete"
+                errors[CONF_BASE] = "user_credentials_incomplete"
                 return self.async_show_form(
                     step_id="auth", data_schema=AUTH_CONFIG, errors=errors
                 )
@@ -151,9 +94,9 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             self.connection = UteEnergy(user_email, user_phone)
             try:
                 if not await self.hass.async_add_executor_job(self.connection.login):
-                    errors["base"] = "login_error"
+                    errors[CONF_BASE] = "invalid_auth"
             except UteApiAccessDenied:
-                errors["base"] = "login_error"
+                errors[CONF_BASE] = "invalid_auth"
             except Exception:  # pylint: disable=broad-except
                 _LOGGER.exception("Unexpected exception in Ute API login")
                 return self.async_abort(reason="unknown")
@@ -166,7 +109,17 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             self.email = user_email
             self.phone = user_phone
 
-            await self.hass.async_add_executor_job(self.connection.request_auth_code)
+            status_requested_code = await self.hass.async_add_executor_job(
+                self.connection.request_auth_code
+            )
+            if status_requested_code.get(
+                RESPONSE_RESULT, None
+            ) == 1 and not status_requested_code.get(RESPONSE_STATUS, False):
+                errors[CONF_BASE] = "invalid_auth"
+
+                return self.async_show_form(
+                    step_id="auth", data_schema=AUTH_CONFIG, errors=errors
+                )
 
             return await self.async_step_code()
 
@@ -193,7 +146,7 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 )
 
                 if not accounts:
-                    errors["base"] = "user_no_accounts"
+                    errors[CONF_BASE] = "user_no_accounts"
                     return self.async_show_form(
                         step_id="code", data_schema=VALIDATE_CODE, errors=errors
                     )
@@ -204,11 +157,8 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
                     service_id = account[ACCOUNT_SERVICE_POINT_ID]
                     self.user_accounts[service_id] = account
-                _LOGGER.debug("User accounts: %s", self.user_accounts)
 
-                # if len(self.user_accounts) == 1:
-                #     self.extract_cloud_info(list(self.cloud_devices.values())[0])
-                #     return await self.async_step_connect()
+                _LOGGER.debug("User accounts: %s", self.user_accounts)
 
                 return await self.async_step_select()
 
@@ -223,21 +173,61 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         errors: dict[str, str] = {}
         if user_input is not None:
             _LOGGER.debug("Account selected: %s", user_input)
-            account = self.user_accounts[user_input["select_account"]]
-            self.extract_service_account_info(account)
+
+            self.account = self.extract_service_account_info(
+                user_input["select_account"]
+            )
+            await self.async_set_unique_id(self.account[ACCOUNT_SERVICE_POINT_ID])
+            self._abort_if_unique_id_configured()
+
+            return await self.extract_service_data()
 
         select_schema = vol.Schema(
-            {vol.Required("select_account"): vol.In(list(self.user_accounts))}
+            {
+                vol.Required("select_account"): vol.In(
+                    self.sanitize_accounts(self.user_accounts)
+                )
+            }
         )
 
         return self.async_show_form(
             step_id="select", data_schema=select_schema, errors=errors
         )
 
-    def extract_service_account_info(self, account: dict[str, Any]) -> None:
+    def sanitize_accounts(self, accounts: dict[str, dict[str, Any]]) -> list:
+        """Extract info to display"""
+
+        return [
+            "{}: {}".format(key, accounts[key][ACCOUNT_SERVICE_POINT_ADDRESS])
+            for key in accounts
+        ]
+
+    def extract_service_account_info(self, selected_account: str) -> dict[str, Any]:
         """Extract the account service info."""
-        _LOGGER.debug("message from extract_service_account_info")
-        _LOGGER.debug("Account: %s", account)
+        account_service_point_id = int(selected_account.split(":")[0].strip())
+
+        _LOGGER.debug("Account: %s", selected_account)
+        account = self.user_accounts[account_service_point_id]
+        assert account is not None
+
+        return account
+
+    async def extract_service_data(self) -> dict[str, Any]:
+        """Extract service data"""
+
+        data: dict[str, Any] = {}
+        agreement_meter_info = await self.hass.async_add_executor_job(
+            self.connection.retrieve_service_agreement,
+            self.account[ACCOUNT_SERVICE_POINT_ID],
+        )
+        assert agreement_meter_info[AGREEMENT_INFO] is not None
+
+        data.update({AGREEMENT_INFO: agreement_meter_info[AGREEMENT_INFO]})
+
+        return self.async_create_entry(
+            title=self.account[ACCOUNT_ID],
+            data=data,
+        )
 
 
 class OptionsFlowHandler(config_entries.OptionsFlow):

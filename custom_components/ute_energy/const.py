@@ -5,7 +5,7 @@ DOMAIN = "ute_energy"
 REQUEST_TOKEN: str = "REQUEST_TOKEN"
 REQUEST_CODE: str = "REQUEST_CODE"
 VALIDATE_CODE: str = "VALIDATE_CODE"
-GET_ACCOUNTS: str = "GET_ACCOUNTS"
+BASE_ACCOUNTS: str = "BASE_ACCOUNTS"
 GET_ACCOUNT_INFO: str = "GET_ACCOUNT_INFO"
 
 PROTO: str = "https"
@@ -22,11 +22,11 @@ HEADERS: dict[str, str] = {
     "Accept": "*/*",
 }
 
-ENPOINTS: dict[str, str] = {
+ENDPOINTS: dict[str, str] = {
     REQUEST_TOKEN: "v1/token",
     REQUEST_CODE: "v1/users/register",
     VALIDATE_CODE: "v1/users/validate",
-    GET_ACCOUNTS: "v1/accounts",
+    BASE_ACCOUNTS: "v1/accounts",
 }
 
 TOKEN_TYPE: str = "Bearer"
@@ -41,3 +41,13 @@ CONF_USER_PHONE = "user_phone"
 CONF_AUTH_CODE = "auth_code"
 
 ACCOUNT_SERVICE_POINT_ID = "accountServicePointId"
+ACCOUNT_SERVICE_POINT_ADDRESS = "servicePointAddress"
+ACCOUNT_ID = "accountId"
+RESPONSE_RESULT = "result"
+RESPONSE_STATUS = "success"
+RESPONSE_ERRORS = "errors"
+RESPONSE_ERROR_MESSAGE = "text"
+
+AGREEMENT_INFO = "agreementInfo"
+
+TARIFAS: dict[str, str] = {"TRT": "Tarifa Resindencial Triple Horario"}

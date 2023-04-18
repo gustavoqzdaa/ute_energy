@@ -12,7 +12,7 @@ from homeassistant.helpers.device_registry import DeviceEntryType
 from homeassistant.helpers.entity import DeviceInfo
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 
-from .const import DOMAIN, BASE_URL, HEADERS, ENPOINTS, GET_ACCOUNTS, REQUEST_TOKEN
+from .const import DOMAIN, BASE_URL
 
 _LOGGER = logging.getLogger(__name__)
 # TODO List the platforms that you want to support.
@@ -28,7 +28,6 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     # TODO 2. Validate the API connection (and authentication)
     # TODO 3. Store an API object for your platforms to access
     # hass.data[DOMAIN][entry.entry_id] = MyApi(...)
-    _LOGGER.debug(entry)
 
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
 

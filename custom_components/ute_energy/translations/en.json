@@ -5,7 +5,9 @@
         },
         "error": {
             "cannot_connect": "Failed to connect",
+            "user_no_accounts": "The user doesn't have any UTE services enabled.",
             "invalid_auth": "Invalid authentication",
+            "user_credentials_incomplete": "Email or phone cannot be null",
             "unknown": "Unexpected error"
         },
         "step": {
@@ -24,9 +26,9 @@
             },
             "select": {
                 "data": {
-                  "select_account": "UTE service account"
+                  "select_account": "Accounts"
                 },
-                "description": "Select a UTE service account to set up."
+                "description": "Select a service account"
             }
         }
     }
