@@ -18,6 +18,7 @@ from homeassistant.const import CONF_BASE
 
 from .const import (
     DOMAIN,
+    CONNECTION,
     CONF_USER_ACCOUNTS,
     CONF_USER_EMAIL,
     CONF_USER_PHONE,
@@ -29,6 +30,7 @@ from .const import (
     ACCOUNT_SERVICE_POINT_ADDRESS,
     AGREEMENT_INFO,
     ACCOUNT_ID,
+    ENTRY_NAME,
 )
 
 
@@ -216,16 +218,29 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         """Extract service data"""
 
         data: dict[str, Any] = {}
-        agreement_meter_info = await self.hass.async_add_executor_job(
-            self.connection.retrieve_service_agreement,
-            self.account[ACCOUNT_SERVICE_POINT_ID],
-        )
-        assert agreement_meter_info[AGREEMENT_INFO] is not None
+        # agreement_meter_info = await self.hass.async_add_executor_job(
+        #     self.connection.retrieve_service_agreement,
+        #     self.account[ACCOUNT_SERVICE_POINT_ID],
+        # )
+        # assert agreement_meter_info[AGREEMENT_INFO] is not None
 
-        data.update({AGREEMENT_INFO: agreement_meter_info[AGREEMENT_INFO]})
+        # _LOGGER.debug("from configflow.extract_service_data: %s", agreement_meter_info)
+
+        account_id = self.account[ACCOUNT_ID]
+        data.update(
+            {
+                CONNECTION: {
+                    CONF_USER_EMAIL: self.email,
+                    CONF_USER_PHONE: self.phone,
+                    ACCOUNT_SERVICE_POINT_ID: self.account[ACCOUNT_SERVICE_POINT_ID],
+                },
+                # AGREEMENT_INFO: agreement_meter_info,
+                ENTRY_NAME: account_id,
+            }
+        )
 
         return self.async_create_entry(
-            title=self.account[ACCOUNT_ID],
+            title=account_id,
             data=data,
         )
 

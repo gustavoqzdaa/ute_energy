@@ -1,12 +1,19 @@
 """Constants for the UTE Energy integration."""
 
-DOMAIN = "ute_energy"
+DOMAIN: str = "ute_energy"
+DEFAULT_NAME: str = "Ute Energy"
+MANUFACTURER: str = "@gustavoqzdaa"
+SOURCE_URL: str = "https://github.com/gustavoqzdaa/ute_energy"
 
 REQUEST_TOKEN: str = "REQUEST_TOKEN"
 REQUEST_CODE: str = "REQUEST_CODE"
 VALIDATE_CODE: str = "VALIDATE_CODE"
 BASE_ACCOUNTS: str = "BASE_ACCOUNTS"
 GET_ACCOUNT_INFO: str = "GET_ACCOUNT_INFO"
+PEAK_INFO: str = "PEAK_INFO"
+MISC_BEHAVIOUR: str = "MISC_BEHAVIOUR"
+INVOICE_INFO: str = "INVOICE_INFO"
+REQUEST_CONSUMPTION: str = "REQUEST_CONSUMPTION"
 
 PROTO: str = "https"
 HOST: str = "rocme.ute.com.uy"
@@ -27,27 +34,51 @@ ENDPOINTS: dict[str, str] = {
     REQUEST_CODE: "v1/users/register",
     VALIDATE_CODE: "v1/users/validate",
     BASE_ACCOUNTS: "v1/accounts",
+    PEAK_INFO: "v1/accounts/{}/peak",
+    MISC_BEHAVIOUR: "v1/misc/behaviour",
+    INVOICE_INFO: "v2/invoices/{}/1/36",
+    REQUEST_CONSUMPTION: "v2/invoices/chart/{}",
 }
 
 TOKEN_TYPE: str = "Bearer"
-PHONE_LENGHT = 11
-PHONE_START_WIHT = "598"
 
-
-DEFAULT_USER_PHONE = "598XXXXXXXX"
-CONF_USER_ACCOUNTS = "user_accounts"
-CONF_USER_EMAIL = "user_email"
-CONF_USER_PHONE = "user_phone"
-CONF_AUTH_CODE = "auth_code"
-
-ACCOUNT_SERVICE_POINT_ID = "accountServicePointId"
-ACCOUNT_SERVICE_POINT_ADDRESS = "servicePointAddress"
-ACCOUNT_ID = "accountId"
-RESPONSE_RESULT = "result"
-RESPONSE_STATUS = "success"
-RESPONSE_ERRORS = "errors"
-RESPONSE_ERROR_MESSAGE = "text"
-
-AGREEMENT_INFO = "agreementInfo"
-
+PHONE_LENGHT: int = 11
+PHONE_START_WIHT: str = "598"
+DEFAULT_USER_PHONE: str = "598XXXXXXXX"
+CONF_USER_ACCOUNTS: str = "user_accounts"
+CONF_USER_EMAIL: str = "user_email"
+CONF_USER_PHONE: str = "user_phone"
+CONF_AUTH_CODE: str = "auth_code"
+ACCOUNT_SERVICE_POINT_ID: str = "accountServicePointId"
+ACCOUNT_SERVICE_POINT_ADDRESS: str = "servicePointAddress"
+ACCOUNT_ID: str = "accountId"
+RESPONSE_RESULT: str = "result"
+RESPONSE_STATUS: str = "success"
+RESPONSE_ERRORS: str = "errors"
+RESPONSE_ERROR_MESSAGE: str = "text"
+CONNECTION: str = "connection"
+AGREEMENT_INFO: str = "agreementInfo"
+ENTRY_NAME: str = "name"
+ENTRY_COORDINATOR: str = "coordinator"
+UPDATE_LISTENER: str = "update_listener"
 TARIFAS: dict[str, str] = {"TRT": "Tarifa Resindencial Triple Horario"}
+INVOICES: str = "invoices"
+LATEST_INVOICE = "latest_invoice"
+MONTH_CHARGES = "monthCharges"
+CURRENCY_UYU: str = "$U"
+CONTRACTED_POWER_ON_PEAK = "contractedPowerOnPeak"
+CONTRACTED_POWER_ON_VALLEY = "contractedPowerOnValley"
+CONTRACTED_POWER_ON_FLAT = "contractedPowerOnFlat"
+CONTRACTED_TARIFF = "tariff"
+CONTRACTED_VOLTAGE = "voltage"
+SERVICE_AGREEMENT_ID = "serviceAgreementId"
+PEAK_TIME = "selectedPeakStartDescription"
+MONTH_CONSUMPTION = "categoryLong"
+ACTIVE_CONSUMPTION = "consumosActiva"
+SINGLE_SERIE = "unaSerie"
+
+ATTRIBUTION = "Data provided by Ute Energy"
+DATA = "data"
+MONTH = "month"
+YEAR = "year"
+VALUE = "value"
