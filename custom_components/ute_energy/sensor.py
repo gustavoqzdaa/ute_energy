@@ -5,7 +5,6 @@ import logging
 
 from dataclasses import dataclass
 from homeassistant.core import HomeAssistant
-from homeassistant.helpers.device_registry import DeviceEntryType
 from homeassistant.helpers.entity import DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.typing import StateType
@@ -28,17 +27,14 @@ from .const import (
     CONTRACTED_POWER_ON_FLAT,
     CONTRACTED_VOLTAGE,
     CURRENCY_UYU,
-    DEFAULT_NAME,
     DOMAIN,
     ENTRY_NAME,
     ENTRY_COORDINATOR,
     LATEST_INVOICE,
-    MANUFACTURER,
     MONTH_CHARGES,
     MONTH_CONSUMPTION,
     PEAK_TIME,
     SERVICE_AGREEMENT_ID,
-    SOURCE_URL,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -122,20 +118,10 @@ async def async_setup_entry(
 
     _LOGGER.debug("Domain data: %s", domain_data)
 
-    device_info = DeviceInfo(
-        model=DEFAULT_NAME,
-        entry_type=DeviceEntryType.SERVICE,
-        identifiers={(DOMAIN, f"{domain_data[ENTRY_NAME]}")},
-        manufacturer=MANUFACTURER,
-        name=DEFAULT_NAME,
-        configuration_url=SOURCE_URL,
-    )
-
     entities: list[AbstractUteEnergySensor] = [
         UteEnergySensor(
             name,
             f"{config_entry.unique_id}_{description.key}",
-            device_info,
             description,
             coordinator,
         )
@@ -155,7 +141,6 @@ class AbstractUteEnergySensor(SensorEntity):
         self,
         name: str,
         unique_id: str,
-        device_info: DeviceInfo,
         description: UteEnergySensorDescription,
         coordinator: DataUpdateCoordinator,
     ) -> None:
@@ -166,7 +151,6 @@ class AbstractUteEnergySensor(SensorEntity):
         self._attr_name = description.name
         self._attr_unique_id = unique_id
         self._attr_state = name
-        self._attr_device_info = device_info
 
     @property
     def available(self) -> bool:
@@ -191,15 +175,19 @@ class UteEnergySensor(AbstractUteEnergySensor):
         self,
         name: str,
         unique_id: str,
-        device_info: DeviceInfo,
         description: UteEnergySensorDescription,
         coordinator: UteEnergyDataUpdateCoordinator,
     ) -> None:
         """Initialize the sensor."""
-        super().__init__(name, unique_id, device_info, description, coordinator)
+        super().__init__(name, unique_id, description, coordinator)
         self._coordinator = coordinator
 
     @property
     def native_value(self) -> StateType:
         """Return the state of the device."""
         return self._coordinator.data.get(self.entity_description.key, None)
+
+    @property
+    def device_info(self) -> DeviceInfo:
+        """Return device info."""
+        return self._coordinator.device_info

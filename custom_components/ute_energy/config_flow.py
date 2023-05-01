@@ -218,13 +218,6 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         """Extract service data"""
 
         data: dict[str, Any] = {}
-        # agreement_meter_info = await self.hass.async_add_executor_job(
-        #     self.connection.retrieve_service_agreement,
-        #     self.account[ACCOUNT_SERVICE_POINT_ID],
-        # )
-        # assert agreement_meter_info[AGREEMENT_INFO] is not None
-
-        # _LOGGER.debug("from configflow.extract_service_data: %s", agreement_meter_info)
 
         account_id = self.account[ACCOUNT_ID]
         data.update(
@@ -234,7 +227,6 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     CONF_USER_PHONE: self.phone,
                     ACCOUNT_SERVICE_POINT_ID: self.account[ACCOUNT_SERVICE_POINT_ID],
                 },
-                # AGREEMENT_INFO: agreement_meter_info,
                 ENTRY_NAME: account_id,
             }
         )

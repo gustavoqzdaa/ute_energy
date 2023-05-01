@@ -50,7 +50,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     ute_api = UteEnergy(email, phone)
 
     coordinator = UteEnergyDataUpdateCoordinator(
-        hass, ute_api, account_service_point_id
+        hass, ute_api, entry.entry_id, account_service_point_id
     )
 
     await coordinator.async_config_entry_first_refresh()

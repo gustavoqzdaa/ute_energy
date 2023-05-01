@@ -9,12 +9,18 @@ import async_timeout
 from homeassistant.core import HomeAssistant
 from .ute_energy import UteEnergy
 from .exceptions import ApiError, UteApiAccessDenied, UteEnergyException
+from homeassistant.helpers.entity import DeviceInfo
+from homeassistant.helpers.device_registry import DeviceEntryType
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 
 # from homeassistant.util import dt
 
 from .const import (
+    DEFAULT_NAME,
     DOMAIN,
+    ENTRY_NAME,
+    MANUFACTURER,
+    SOURCE_URL,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -29,19 +35,13 @@ class UteEnergyDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         self,
         hass: HomeAssistant,
         ute_api: UteEnergy,
+        device_key: str,
         account_service_point_id: str,
     ) -> None:
         """Initialize coordinator."""
         self._ute_api = ute_api
         self._account_service_point_id = account_service_point_id
-        # self.device_info = DeviceInfo(
-        #     entry_type=DeviceEntryType.SERVICE,
-        #     identifiers={(DOMAIN, account_service_point_id)},
-        #     name=name,
-        #     configuration_url=(
-        #         f"{BASE_URL}/{ENPOINTS[GET_ACCOUNTS]/{account_service_point_id}}"
-        #     ),
-        # )
+        self._device_key = device_key
 
         _LOGGER.debug("Data will be update every %s", UPDATE_INTERVAL)
 
@@ -66,3 +66,16 @@ class UteEnergyDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             self._ute_api.retrieve_service_account_data, self._account_service_point_id
         )
         return response
+
+    @property
+    def device_info(self) -> DeviceInfo:
+        """Device info."""
+        domain_data = self.hass.data[DOMAIN][self._device_key]
+        return DeviceInfo(
+            model=DEFAULT_NAME,
+            entry_type=DeviceEntryType.SERVICE,
+            identifiers={(DOMAIN, f"{domain_data[ENTRY_NAME]}")},
+            manufacturer=MANUFACTURER,
+            name=DEFAULT_NAME,
+            configuration_url=SOURCE_URL,
+        )
