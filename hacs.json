@@ -1,0 +1,6 @@
+{
+    "name": "Ute energy",
+    "hide_default_branch": true,
+    "homeassistant": "2023.4.0",
+    "render_readme": true
+}
