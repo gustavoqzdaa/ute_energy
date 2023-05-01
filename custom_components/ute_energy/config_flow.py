@@ -152,15 +152,9 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     return self.async_show_form(
                         step_id="code", data_schema=VALIDATE_CODE, errors=errors
                     )
-                i = 0
                 for account in accounts:
-                    i += 1
-                    _LOGGER.debug("Account #%s: %s", i, account)
-
                     service_id = account[ACCOUNT_SERVICE_POINT_ID]
                     self.user_accounts[service_id] = account
-
-                _LOGGER.debug("User accounts: %s", self.user_accounts)
 
                 return await self.async_step_select()
 
@@ -208,7 +202,6 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         """Extract the account service info."""
         account_service_point_id = int(selected_account.split(":")[0].strip())
 
-        _LOGGER.debug("Account: %s", selected_account)
         account = self.user_accounts[account_service_point_id]
         assert account is not None
 

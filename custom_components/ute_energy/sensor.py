@@ -68,12 +68,14 @@ SENSOR_TYPES: tuple[UteEnergySensorDescription, ...] = (
         name="Contracted power on flat",
         native_unit_of_measurement=UnitOfPower.KILO_WATT,
         device_class=SensorDeviceClass.POWER,
+        entity_registry_enabled_default=False,
     ),
     UteEnergySensorDescription(
         key=CONTRACTED_POWER_ON_VALLEY,
         name="Contracted power on valley",
         native_unit_of_measurement=UnitOfPower.KILO_WATT,
         device_class=SensorDeviceClass.POWER,
+        entity_registry_enabled_default=False,
     ),
     UteEnergySensorDescription(
         key=CONTRACTED_POWER_ON_PEAK,
@@ -85,6 +87,7 @@ SENSOR_TYPES: tuple[UteEnergySensorDescription, ...] = (
         key=PEAK_TIME,
         name="Peak time",
         icon="mdi:timer-outline",
+        entity_registry_enabled_default=False,
     ),
     UteEnergySensorDescription(
         key=LATEST_INVOICE,
@@ -115,8 +118,6 @@ async def async_setup_entry(
     domain_data = hass.data[DOMAIN][config_entry.entry_id]
     name = domain_data[ENTRY_NAME]
     coordinator = domain_data[ENTRY_COORDINATOR]
-
-    _LOGGER.debug("Domain data: %s", domain_data)
 
     entities: list[AbstractUteEnergySensor] = [
         UteEnergySensor(

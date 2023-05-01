@@ -36,12 +36,6 @@ PLATFORMS: list[Platform] = [Platform.SENSOR]
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up UTE Energy from a config entry."""
-
-    # TODO 1. Create API instance
-    # TODO 2. Validate the API connection (and authentication)
-    # TODO 3. Store an API object for your platforms to access
-    # hass.data[DOMAIN][entry.entry_id] = MyApi(...)
-    _LOGGER.debug("Entry data: %s", entry.data)
     email = entry.data[CONNECTION][CONF_USER_EMAIL]
     phone = entry.data[CONNECTION][CONF_USER_PHONE]
     account_id = entry.data[ENTRY_NAME]

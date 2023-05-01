@@ -54,10 +54,8 @@ class UteEnergyDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             try:
                 await self.hass.async_add_executor_job(self._ute_api.login)
                 data = await self._service_account_data()
-                # data = self._convert_weather_response(response)
             except (ApiError, UteApiAccessDenied, UteEnergyException) as error:
                 raise UpdateFailed(error) from error
-        _LOGGER.debug("Data from coordinator: %s", data)
         return data
 
     async def _service_account_data(self) -> dict[str, Any]:

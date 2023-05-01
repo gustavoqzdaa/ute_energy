@@ -32,6 +32,7 @@ from .const import (
     DATA,
     ENDPOINTS,
     HEADERS,
+    ID,
     INVOICES,
     INVOICE_INFO,
     MISC_BEHAVIOUR,
@@ -103,8 +104,6 @@ class UteEnergy:
         if self.email and self.service_token:
             return True
 
-        _LOGGER.debug("UTE logging in with email %s and %s", self.email, self.phone)
-
         try:
             if self._login_request():
                 self.failed_logins = 0
@@ -112,7 +111,7 @@ class UteEnergy:
                 self.failed_logins += 1
                 _LOGGER.debug("Ute API login attempt %s", self.failed_logins)
         except UteEnergyException as error:
-            _LOGGER.info(
+            _LOGGER.debug(
                 "Error logging on to Ute API (%s): %s",
                 self.failed_logins,
                 str(error),
@@ -120,13 +119,13 @@ class UteEnergy:
             self.failed_logins += 1
             self.service_token = None
             if self.failed_logins > 10:
-                _LOGGER.info(
+                _LOGGER.debug(
                     "Repeated errors logging on to Ute API. Cleaning stored cookies"
                 )
                 self._init_session(reset=True)
             return False
         except UteApiAccessDenied as error:
-            logging.info(
+            _LOGGER.debug(
                 "Access denied when logging  on to Ute API. (%s): %s",
                 self.failed_logins,
                 str(error),
@@ -134,7 +133,7 @@ class UteEnergy:
             self.failed_logins += 1
             self.service_token = None
             if self.failed_logins > 10:
-                logging.info(
+                _LOGGER.debug(
                     "Repeated errors logging  on to Ute API. Cleaning stored cookies"
                 )
                 self._init_session(reset=True)
@@ -159,17 +158,12 @@ class UteEnergy:
                     "Access denied. Did you set the correct api key and/or username?"
                 )
             if response.status_code == 200:
-                _LOGGER.debug("Response: %s", response.text)
                 service_token = response.text
-
                 if service_token:
                     self.service_token = service_token
                     self.session.headers.update(
                         {"Authorization": f"{TOKEN_TYPE} {self.service_token}"}
                     )
-                    _LOGGER.debug("Headers: %s ", self.session.headers)
-                    _LOGGER.debug("Your service token: %s", self.service_token)
-
                 return True
             _LOGGER.debug(
                 "request returned status '%s', reason: %s, content: %s",
@@ -215,9 +209,7 @@ class UteEnergy:
                 )
 
             if response.status_code == 200:
-                content = response.json()
-                _LOGGER.debug("Auth code requested, response: %s", content)
-                return content
+                return response.json()
 
             _LOGGER.debug(
                 "request returned status '%s', reason: %s, content: %s",
@@ -247,8 +239,6 @@ class UteEnergy:
                 )
 
             if response.status_code == 200:
-                content = response.json()
-                _LOGGER.debug("Auth code validated, response: %s", content)
                 return True
 
             _LOGGER.debug(
@@ -278,7 +268,6 @@ class UteEnergy:
 
             if response.status_code == 200:
                 content = response.json()
-                _LOGGER.debug("Accounts: %s", content)
                 return content["data"]
 
             _LOGGER.debug(
@@ -299,13 +288,11 @@ class UteEnergy:
         data.update(self._retrieve_peak_time(account_id))
         data.update(self._retrieve_latest_invoice_info(account_id))
         data.update(self._retrieve_latest_month_consumption_info(account_id))
-        _LOGGER.debug("All service account data: %s", data)
         return data
 
     def _retrieve_service_agreement(self, account_id: str) -> dict[str, Any]:
         """Retrieve agreement and meter info from UTE API"""
         url = f"{BASE_URL}{ENDPOINTS[BASE_ACCOUNTS]}/{account_id}"
-        _LOGGER.debug("URL: %s", url)
         try:
             response = self.session.get(url)
 
@@ -317,7 +304,6 @@ class UteEnergy:
             if response.status_code == 200:
                 data: dict[str, Any] = {}
                 content = response.json()
-                _LOGGER.debug("agreementInfo and meterInfo: %s", content)
                 agreement_info = content[DATA][AGREEMENT_INFO]
                 data.update(
                     {
@@ -335,8 +321,6 @@ class UteEnergy:
                         ],
                     }
                 )
-
-                _LOGGER.debug("agreement data: %s", data)
 
                 return data
 
@@ -363,8 +347,6 @@ class UteEnergy:
 
         url = f"{BASE_URL}{path}"
 
-        _LOGGER.debug("URL: %s", url)
-
         try:
             response = self.session.get(url)
 
@@ -376,16 +358,9 @@ class UteEnergy:
             if response.status_code == 200:
                 data: dict[str, Any] = {}
                 content = response.json()
-                _LOGGER.debug("agreementInfo and meterInfo: %s", content)
-
                 peack_info = content[DATA][PEAK_TIME]
-
                 assert peack_info is not None
-
                 data.update({PEAK_TIME: peack_info})
-
-                _LOGGER.debug("Peak time: %s", data)
-
                 return data
 
             _LOGGER.debug(
@@ -455,10 +430,7 @@ class UteEnergy:
                 if content[RESPONSE_STATUS]:
                     invoices = content[DATA][INVOICES]
 
-                    _LOGGER.debug("invoices: %s", invoices)
-
                     latest_invoice = self._extract_latest_invoice_info(invoices)
-
                     _month = convert_number_to_month(latest_invoice[MONTH])
 
                     data.update(
@@ -467,7 +439,6 @@ class UteEnergy:
                             MONTH_CHARGES: latest_invoice[MONTH_CHARGES],
                         }
                     )
-                    _LOGGER.debug("Last invoice info: %s", data)
 
                     return data
 
@@ -493,9 +464,6 @@ class UteEnergy:
             invoices,
             key=lambda x: (x[YEAR], x[MONTH]) <= (today.year, today.month),
         )
-
-        _LOGGER.debug("Last invoice: %s", last_invoice)
-
         return last_invoice
 
     def _retrieve_latest_month_consumption_info(
@@ -519,12 +487,10 @@ class UteEnergy:
                     active_consumption = content[DATA][0][ACTIVE_CONSUMPTION][
                         SINGLE_SERIE
                     ]
-                    _LOGGER.debug("Active consumption: %s", active_consumption)
-                    latest_consumption = max(
-                        active_consumption, key=lambda x: x[MONTH_CONSUMPTION]
-                    )
+                    latest_consumption: dict[
+                        str, Any
+                    ] = self._extract_latest_consumption_info(active_consumption)
                     data.update({MONTH_CONSUMPTION: latest_consumption[VALUE]})
-                    _LOGGER.debug("Lastest consumption info: %s", latest_consumption)
                     return data
                 return data
 
@@ -539,3 +505,23 @@ class UteEnergy:
             raise e
         except Exception as e:  # pylint: disable=invalid-name
             raise UteEnergyException("Cannot logging on to Ute API: " + str(e)) from e
+
+    def _extract_latest_consumption_info(
+        self, active_consumption: list[dict[str, Any]]
+    ) -> dict[str, Any]:
+        """Extract latest month consumption info."""
+        latest_consumption: dict[str, Any] = {VALUE: 0}
+
+        active_consumption_filtered = list(
+            filter(lambda x: x[ID] > 0, active_consumption)
+        )
+        if (
+            len(active_consumption_filtered) > 0
+            and active_consumption[0][MONTH_CONSUMPTION] == 0
+        ):
+            latest_consumption = active_consumption_filtered[-1]
+        else:
+            latest_consumption = max(
+                active_consumption, key=lambda x: x[MONTH_CONSUMPTION]
+            )
+        return latest_consumption
