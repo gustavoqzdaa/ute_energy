@@ -11,6 +11,7 @@ from homeassistant.helpers.typing import StateType
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 from homeassistant.config_entries import ConfigEntry
 from .coordinator import UteEnergyDataUpdateCoordinator
+from .utils import convert_to_snake_case
 
 from homeassistant.components.sensor import (
     SensorDeviceClass,
@@ -118,7 +119,6 @@ async def async_setup_entry(
     domain_data = hass.data[DOMAIN][config_entry.entry_id]
     name = domain_data[ENTRY_NAME]
     coordinator = domain_data[ENTRY_COORDINATOR]
-
     entities: list[AbstractUteEnergySensor] = [
         UteEnergySensor(
             name,
@@ -180,6 +180,7 @@ class UteEnergySensor(AbstractUteEnergySensor):
         coordinator: UteEnergyDataUpdateCoordinator,
     ) -> None:
         """Initialize the sensor."""
+        self.entity_id = f"sensor.{convert_to_snake_case(description.name)}_{name}"
         super().__init__(name, unique_id, description, coordinator)
         self._coordinator = coordinator
 

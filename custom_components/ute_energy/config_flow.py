@@ -168,8 +168,6 @@ class ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         """Handle multiple account services found."""
         errors: dict[str, str] = {}
         if user_input is not None:
-            _LOGGER.debug("Account selected: %s", user_input)
-
             self.account = self.extract_service_account_info(
                 user_input["select_account"]
             )
