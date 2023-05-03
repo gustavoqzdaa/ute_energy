@@ -19,7 +19,7 @@ from homeassistant.components.sensor import (
     SensorEntityDescription,
 )
 
-from homeassistant.const import UnitOfPower
+from homeassistant.const import UnitOfPower, UnitOfEnergy
 from .const import (
     ATTRIBUTION,
     CONTRACTED_TARIFF,
@@ -104,8 +104,8 @@ SENSOR_TYPES: tuple[UteEnergySensorDescription, ...] = (
     UteEnergySensorDescription(
         key=MONTH_CONSUMPTION,
         name="Latest month consumption",
-        native_unit_of_measurement=UnitOfPower.KILO_WATT,
-        device_class=SensorDeviceClass.POWER,
+        native_unit_of_measurement=UnitOfEnergy.KILO_WATT_HOUR,
+        device_class=SensorDeviceClass.ENERGY,
     ),
 )
 
