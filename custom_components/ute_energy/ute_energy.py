@@ -5,6 +5,7 @@ import logging
 import json
 import requests
 import datetime
+import time
 
 from typing import Any
 from .utils import (
@@ -24,11 +25,15 @@ from .const import (
     AGREEMENT_INFO,
     BASE_ACCOUNTS,
     BASE_URL,
+    CONSUMPTION_ATTR,
     CONTRACTED_TARIFF,
     CONTRACTED_VOLTAGE,
     CONTRACTED_POWER_ON_PEAK,
     CONTRACTED_POWER_ON_VALLEY,
     CONTRACTED_POWER_ON_FLAT,
+    CURRENT_CONSUMPTION,
+    CURRENT_POWER,
+    CURRENT_VOLTAGE,
     DATA,
     ENDPOINTS,
     HEADERS,
@@ -37,6 +42,7 @@ from .const import (
     INVOICE_INFO,
     MISC_BEHAVIOUR,
     LATEST_INVOICE,
+    LAST_READING,
     MONTH,
     MONTH_CHARGES,
     MONTH_CONSUMPTION,
@@ -44,14 +50,17 @@ from .const import (
     PEAK_TIME,
     PHONE_LENGHT,
     PHONE_START_WIHT,
-    SINGLE_SERIE,
-    SERVICE_AGREEMENT_ID,
-    TOKEN_TYPE,
+    READINGS,
+    READING_REQUEST,
     REQUEST_CODE,
     REQUEST_CONSUMPTION,
     REQUEST_TOKEN,
     RESPONSE_STATUS,
+    SINGLE_SERIE,
+    SERVICE_AGREEMENT_ID,
+    TOKEN_TYPE,
     VALIDATE_CODE,
+    VALOR,
     VALUE,
     YEAR,
 )
@@ -288,6 +297,7 @@ class UteEnergy:
         data.update(self._retrieve_peak_time(account_id))
         data.update(self._retrieve_latest_invoice_info(account_id))
         data.update(self._retrieve_latest_month_consumption_info(account_id))
+        data.update(self._retrieve_current_power_meter_info(account_id))
         return data
 
     def _retrieve_service_agreement(self, account_id: str) -> dict[str, Any]:
@@ -501,6 +511,110 @@ class UteEnergy:
                 response.text,
             )
             raise UteEnergyException(str(response.status_code) + response.reason)
+        except UteApiAccessDenied as e:  # pylint: disable=invalid-name
+            raise e
+        except Exception as e:  # pylint: disable=invalid-name
+            raise UteEnergyException("Cannot logging on to Ute API: " + str(e)) from e
+
+    def _retrieve_current_power_meter_info(self, account_id: str) -> dict[str, Any]:
+        """Retrieve current power meter info from UTE API"""
+
+        data: dict[str, Any] = {}
+        # make reading request
+        if is_reading_request := self._send_reading_request(account_id):
+            data = self._retrieve_latest_reading_info(account_id)
+
+        _LOGGER.info("Latest reading response: %s", data)
+        return data
+        # retrieve last reading request
+
+        # extract data from last reading request
+
+    def _send_reading_request(self, account_id: str) -> bool:
+        """Send reading request to UTE API"""
+        url = f"{BASE_URL}{ENDPOINTS[READING_REQUEST]}"
+        payload: dict[str, str] = {
+            "AccountServicePointId": account_id,
+        }
+
+        try:
+            response = self.session.post(url, data=json.dumps(payload))
+            if response.status_code == 403:
+                raise UteApiAccessDenied(
+                    "Access denied. Did you set the correct emal and/or phone?"
+                )
+
+            if response.status_code == 200:
+                content = response.json()
+                _LOGGER.debug("Reading request: %s", content)
+                return content[RESPONSE_STATUS]
+
+            _LOGGER.debug(
+                "request returned status '%s', reason: %s, content: %s",
+                response.status_code,
+                response.reason,
+                response.text,
+            )
+            raise UteEnergyException(str(response.status_code) + response.reason)
+        except UteApiAccessDenied as e:  # pylint: disable=invalid-name
+            raise e
+        except Exception as e:  # pylint: disable=invalid-name
+            raise UteEnergyException("Cannot logging on to Ute API: " + str(e)) from e
+
+    def _retrieve_latest_reading_info(self, account_id: str) -> dict[str, str]:
+        """Send reading request to UTE API"""
+
+        path = ENDPOINTS[LAST_READING].format(account_id)
+        url = f"{BASE_URL}/{path}"
+
+        try:
+            data: dict[str, Any] = {}
+            reading_in_process = True
+            count = 0
+            while reading_in_process:
+                response = self.session.get(url)
+                _LOGGER.debug("Response: %s", response)
+                if response.status_code == 403:
+                    raise UteApiAccessDenied(
+                        "Access denied. Did you set the correct emal and/or phone?"
+                    )
+
+                if response.status_code == 200:
+                    content = response.json()
+                    _LOGGER.debug("response: %s", content)
+                    if content[RESPONSE_STATUS]:
+                        reading_in_process = False
+                        latest_reading = content[DATA][READINGS]
+                        _LOGGER.debug("latest reading: %s", latest_reading)
+
+                        for status in latest_reading:
+                            data[status[CONSUMPTION_ATTR]] = status[VALOR]
+
+                        _LOGGER.debug("current status mapped: %s", data)
+
+                        current_power = float(data[CURRENT_VOLTAGE]) * float(
+                            data[CURRENT_CONSUMPTION]
+                        )
+                        data.update({CURRENT_POWER: current_power})
+                        return data
+                    _LOGGER.debug("Waiting 3000ms due to many requests ....  %s", count)
+
+                    if count == 15:
+                        reading_in_process = True
+                        continue
+
+                    count += 1
+                    time.sleep(3)
+                    continue
+
+                _LOGGER.debug(
+                    "request returned status '%s', reason: %s, content: %s",
+                    response.status_code,
+                    response.reason,
+                    response.text,
+                )
+                raise UteEnergyException(str(response.status_code) + response.reason)
+            return data
         except UteApiAccessDenied as e:  # pylint: disable=invalid-name
             raise e
         except Exception as e:  # pylint: disable=invalid-name

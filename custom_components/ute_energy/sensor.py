@@ -11,6 +11,8 @@ from homeassistant.helpers.typing import StateType
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 from homeassistant.config_entries import ConfigEntry
 from .coordinator import UteEnergyDataUpdateCoordinator
+from homeassistant.const import EntityCategory
+
 from .utils import convert_to_snake_case
 
 from homeassistant.components.sensor import (
@@ -19,7 +21,12 @@ from homeassistant.components.sensor import (
     SensorEntityDescription,
 )
 
-from homeassistant.const import UnitOfPower, UnitOfEnergy
+from homeassistant.const import (
+    UnitOfPower,
+    UnitOfEnergy,
+    UnitOfElectricCurrent,
+    UnitOfElectricPotential,
+)
 from .const import (
     ATTRIBUTION,
     CONTRACTED_TARIFF,
@@ -27,7 +34,10 @@ from .const import (
     CONTRACTED_POWER_ON_VALLEY,
     CONTRACTED_POWER_ON_FLAT,
     CONTRACTED_VOLTAGE,
+    CURRENT_CONSUMPTION,
+    CURRENT_POWER,
     CURRENCY_UYU,
+    CURRENT_VOLTAGE,
     DOMAIN,
     ENTRY_NAME,
     ENTRY_COORDINATOR,
@@ -107,6 +117,27 @@ SENSOR_TYPES: tuple[UteEnergySensorDescription, ...] = (
         native_unit_of_measurement=UnitOfEnergy.KILO_WATT_HOUR,
         device_class=SensorDeviceClass.ENERGY,
     ),
+    UteEnergySensorDescription(
+        key=CURRENT_CONSUMPTION,
+        name="Current",
+        native_unit_of_measurement=UnitOfElectricCurrent.AMPERE,
+        device_class=SensorDeviceClass.CURRENT,
+        entity_category=EntityCategory.DIAGNOSTIC,
+    ),
+    UteEnergySensorDescription(
+        key=CURRENT_VOLTAGE,
+        name="Voltage",
+        native_unit_of_measurement=UnitOfElectricPotential.VOLT,
+        device_class=SensorDeviceClass.VOLTAGE,
+        entity_category=EntityCategory.DIAGNOSTIC,
+    ),
+    UteEnergySensorDescription(
+        key=CURRENT_POWER,
+        name="Power",
+        native_unit_of_measurement=UnitOfPower.WATT,
+        device_class=SensorDeviceClass.POWER,
+        entity_category=EntityCategory.DIAGNOSTIC,
+    ),
 )
 
 
@@ -157,6 +188,11 @@ class AbstractUteEnergySensor(SensorEntity):
     def available(self) -> bool:
         """Return True if entity is available."""
         return self._coordinator.last_update_success
+
+    @property
+    def native_value(self) -> StateType:
+        """Return the state of the device."""
+        return self._coordinator.data.get(self.entity_description.key, None)
 
     async def async_added_to_hass(self) -> None:
         """Connect to dispatcher listening for entity data notifications."""

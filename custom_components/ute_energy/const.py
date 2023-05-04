@@ -14,6 +14,8 @@ PEAK_INFO: str = "PEAK_INFO"
 MISC_BEHAVIOUR: str = "MISC_BEHAVIOUR"
 INVOICE_INFO: str = "INVOICE_INFO"
 REQUEST_CONSUMPTION: str = "REQUEST_CONSUMPTION"
+READING_REQUEST: str = "READING_REQUEST"
+LAST_READING: str = "LAST_READING"
 
 PROTO: str = "https"
 HOST: str = "rocme.ute.com.uy"
@@ -38,6 +40,8 @@ ENDPOINTS: dict[str, str] = {
     MISC_BEHAVIOUR: "v1/misc/behaviour",
     INVOICE_INFO: "v2/invoices/{}/1/36",
     REQUEST_CONSUMPTION: "v2/invoices/chart/{}",
+    READING_REQUEST: "v1/device/readingRequest",
+    LAST_READING: "v1/device/{}/lastReading/30",
 }
 
 TOKEN_TYPE: str = "Bearer"
@@ -82,4 +86,11 @@ DATA = "data"
 MONTH = "month"
 YEAR = "year"
 VALUE = "value"
+VALOR = "valor"
 ID = "id"
+READINGS = "readings"
+CURRENT_POWER = "current_power"
+CONSUMPTION_ATTR = "tipoLecturaMGMI"
+CURRENT_CONSUMPTION = "I1"
+CURRENT_VOLTAGE = "V1"
+CURRENT_STATUS = "RELAY_ON"

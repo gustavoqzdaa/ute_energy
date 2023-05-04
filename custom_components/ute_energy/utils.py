@@ -5,6 +5,10 @@ import string
 import re
 import calendar
 
+import logging
+
+_LOGGER = logging.getLogger(__name__)
+
 
 def generate_random_agent_id() -> str:
     """Generate random agent"""
