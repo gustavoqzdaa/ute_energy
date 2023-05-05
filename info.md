@@ -49,15 +49,15 @@ custom_components/ute_energy/config_flow.py
 ## Configuration is done in the UI
 #
 
-<img src="custom_components/docs/media/step1.png" width="25%">
-<img src="custom_components/docs/media/step2.png" width="23%">
+<img src="docs/media/step1.png" width="25%">
+<img src="docs/media/step2.png" width="23%">
 <br/>
-<img src="custom_components/docs/media/step3.png" width="25%">
-<img src="custom_components/docs/media/step4.png" height="10%" width="25%">
+<img src="docs/media/step3.png" width="25%">
+<img src="docs/media/step4.png" height="10%" width="25%">
 <br/>
 <br/>
-<img src="custom_components/docs/media/sensors1.png" width="25%">
-<img src="custom_components/docs/media/sensors2.png" width="25%">
+<img src="docs/media/sensors1.png" width="25%">
+<img src="docs/media/sensors2.png" width="25%">
 
 
 <!---->
