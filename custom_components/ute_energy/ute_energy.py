@@ -546,7 +546,6 @@ class UteEnergy:
 
             if response.status_code == 200:
                 content = response.json()
-                _LOGGER.debug("Reading request: %s", content)
                 return content[RESPONSE_STATUS]
 
             _LOGGER.debug(
@@ -573,7 +572,6 @@ class UteEnergy:
             count = 0
             while reading_in_process:
                 response = self.session.get(url)
-                _LOGGER.debug("Response: %s", response)
                 if response.status_code == 403:
                     raise UteApiAccessDenied(
                         "Access denied. Did you set the correct emal and/or phone?"
@@ -581,23 +579,21 @@ class UteEnergy:
 
                 if response.status_code == 200:
                     content = response.json()
-                    _LOGGER.debug("response: %s", content)
                     if content[RESPONSE_STATUS]:
                         reading_in_process = False
                         latest_reading = content[DATA][READINGS]
-                        _LOGGER.debug("latest reading: %s", latest_reading)
 
                         for status in latest_reading:
                             data[status[CONSUMPTION_ATTR]] = status[VALOR]
-
-                        _LOGGER.debug("current status mapped: %s", data)
 
                         current_power = float(data[CURRENT_VOLTAGE]) * float(
                             data[CURRENT_CONSUMPTION]
                         )
                         data.update({CURRENT_POWER: current_power})
                         return data
-                    _LOGGER.debug("Waiting 3000ms due to many requests ....  %s", count)
+                    _LOGGER.debug(
+                        "Waiting 3000 ms due to many requests ....  %s", count
+                    )
 
                     if count == 15:
                         reading_in_process = True
