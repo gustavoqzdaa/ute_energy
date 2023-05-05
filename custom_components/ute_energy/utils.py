@@ -35,3 +35,9 @@ def convert_to_snake_case(name: str) -> str:
 def convert_number_to_month(month: int) -> str:
     """Convert a number to month"""
     return calendar.month_abbr[month]
+
+
+def extract_entity_id(name, account_id, description_name) -> str:
+    """Return entity_id"""
+    text_id = f"sensor.{name} {account_id} {description_name}"
+    return convert_to_snake_case(text_id)

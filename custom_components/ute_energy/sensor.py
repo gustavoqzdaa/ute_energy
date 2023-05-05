@@ -13,8 +13,6 @@ from homeassistant.config_entries import ConfigEntry
 from .coordinator import UteEnergyDataUpdateCoordinator
 from homeassistant.const import EntityCategory
 
-from .utils import convert_to_snake_case
-
 from homeassistant.components.sensor import (
     SensorDeviceClass,
     SensorEntity,
@@ -27,7 +25,10 @@ from homeassistant.const import (
     UnitOfElectricCurrent,
     UnitOfElectricPotential,
 )
+from .utils import extract_entity_id
+
 from .const import (
+    ACCOUNT_ID,
     ATTRIBUTION,
     CONTRACTED_TARIFF,
     CONTRACTED_POWER_ON_PEAK,
@@ -38,6 +39,7 @@ from .const import (
     CURRENT_POWER,
     CURRENCY_UYU,
     CURRENT_VOLTAGE,
+    DEFAULT_PRECISION,
     DOMAIN,
     ENTRY_NAME,
     ENTRY_COORDINATOR,
@@ -123,6 +125,7 @@ SENSOR_TYPES: tuple[UteEnergySensorDescription, ...] = (
         native_unit_of_measurement=UnitOfElectricCurrent.AMPERE,
         device_class=SensorDeviceClass.CURRENT,
         entity_category=EntityCategory.DIAGNOSTIC,
+        suggested_display_precision=DEFAULT_PRECISION,
     ),
     UteEnergySensorDescription(
         key=CURRENT_VOLTAGE,
@@ -130,6 +133,7 @@ SENSOR_TYPES: tuple[UteEnergySensorDescription, ...] = (
         native_unit_of_measurement=UnitOfElectricPotential.VOLT,
         device_class=SensorDeviceClass.VOLTAGE,
         entity_category=EntityCategory.DIAGNOSTIC,
+        suggested_display_precision=DEFAULT_PRECISION,
     ),
     UteEnergySensorDescription(
         key=CURRENT_POWER,
@@ -137,6 +141,7 @@ SENSOR_TYPES: tuple[UteEnergySensorDescription, ...] = (
         native_unit_of_measurement=UnitOfPower.WATT,
         device_class=SensorDeviceClass.POWER,
         entity_category=EntityCategory.DIAGNOSTIC,
+        suggested_display_precision=DEFAULT_PRECISION,
     ),
 )
 
@@ -149,11 +154,14 @@ async def async_setup_entry(
     """Set up UTE Energy sensor entities based on a config entry."""
     domain_data = hass.data[DOMAIN][config_entry.entry_id]
     name = domain_data[ENTRY_NAME]
+    account_id = domain_data[ACCOUNT_ID]
     coordinator = domain_data[ENTRY_COORDINATOR]
+
     entities: list[AbstractUteEnergySensor] = [
         UteEnergySensor(
             name,
-            f"{config_entry.unique_id}_{description.key}",
+            account_id,
+            f"{config_entry.unique_id}_{account_id}_{description.key}",
             description,
             coordinator,
         )
@@ -180,9 +188,8 @@ class AbstractUteEnergySensor(SensorEntity):
         self.entity_description = description
         self._coordinator = coordinator
 
-        self._attr_name = description.name
+        self._attr_name = f"{name} {description.name}"
         self._attr_unique_id = unique_id
-        self._attr_state = name
 
     @property
     def available(self) -> bool:
@@ -211,12 +218,13 @@ class UteEnergySensor(AbstractUteEnergySensor):
     def __init__(
         self,
         name: str,
+        account_id: str,
         unique_id: str,
         description: UteEnergySensorDescription,
         coordinator: UteEnergyDataUpdateCoordinator,
     ) -> None:
         """Initialize the sensor."""
-        self.entity_id = f"sensor.{convert_to_snake_case(description.name)}_{name}"
+        self.entity_id = extract_entity_id(name, account_id, description.name)
         super().__init__(name, unique_id, description, coordinator)
         self._coordinator = coordinator
 

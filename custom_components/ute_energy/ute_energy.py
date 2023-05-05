@@ -21,6 +21,7 @@ from .exceptions import (
 )
 
 from .const import (
+    ACCOUNT_SERVICE_POINT_ID,
     ACTIVE_CONSUMPTION,
     AGREEMENT_INFO,
     BASE_ACCOUNTS,
@@ -123,7 +124,7 @@ class UteEnergy:
             _LOGGER.debug(
                 "Error logging on to Ute API (%s): %s",
                 self.failed_logins,
-                str(error),
+                error.message,
             )
             self.failed_logins += 1
             self.service_token = None
@@ -137,7 +138,7 @@ class UteEnergy:
             _LOGGER.debug(
                 "Access denied when logging  on to Ute API. (%s): %s",
                 self.failed_logins,
-                str(error),
+                error.message,
             )
             self.failed_logins += 1
             self.service_token = None
@@ -230,7 +231,7 @@ class UteEnergy:
         except UteApiAccessDenied as e:  # pylint: disable=invalid-name
             raise e
         except Exception as e:  # pylint: disable=invalid-name
-            raise UteEnergyException("Cannot logging on to Ute API: " + str(e)) from e
+            raise UteEnergyException(f"Cannot logging on to Ute API: {e}") from e
 
     def validate_auth_code(self, code: str) -> bool:
         """Validate authentication code"""
@@ -260,7 +261,7 @@ class UteEnergy:
         except UteApiAccessDenied as e:  # pylint: disable=invalid-name
             raise e
         except Exception as e:  # pylint: disable=invalid-name
-            raise UteEnergyException("Cannot logon to Ute API: " + str(e)) from e
+            raise UteEnergyException("Cannot logon to Ute API: {}".format(e)) from e
 
     def request_accounts(self) -> Any:
         """Request all user account services"""
@@ -289,7 +290,7 @@ class UteEnergy:
         except UteApiAccessDenied as e:  # pylint: disable=invalid-name
             raise e
         except Exception as e:  # pylint: disable=invalid-name
-            raise UteEnergyException("Cannot logging on to Ute API: " + str(e)) from e
+            raise UteEnergyException(f"Cannot logging on to Ute API: {e}") from e
 
     def retrieve_service_account_data(self, account_id: str) -> dict[str, Any]:
         """Retrieve service account data."""
@@ -383,7 +384,7 @@ class UteEnergy:
         except UteApiAccessDenied as e:  # pylint: disable=invalid-name
             raise e
         except Exception as e:  # pylint: disable=invalid-name
-            raise UteEnergyException("Cannot logging on to Ute API: " + str(e)) from e
+            raise UteEnergyException(f"Cannot logging on to Ute API: {e}") from e
 
     def _is_tariff_peak_unavailable(self, account_id: str) -> bool:
         """Retrieve peak tariff availability"""
@@ -392,7 +393,7 @@ class UteEnergy:
         payload: dict[str, str] = {
             "Name": "IsTariffPeakSelectionAvailable",
             "Value": None,
-            "AccountServicePointId": account_id,
+            ACCOUNT_SERVICE_POINT_ID: account_id,
         }
 
         try:
@@ -418,7 +419,7 @@ class UteEnergy:
         except UteApiAccessDenied as e:  # pylint: disable=invalid-name
             raise e
         except Exception as e:  # pylint: disable=invalid-name
-            raise UteEnergyException("Cannot logging on to Ute API: " + str(e)) from e
+            raise UteEnergyException(f"Cannot logging on to Ute API: {e}") from e
 
     def _retrieve_latest_invoice_info(self, account_id: str) -> dict[str, str]:
         """Retrieve latest invoice info"""
@@ -462,7 +463,7 @@ class UteEnergy:
         except UteApiAccessDenied as e:  # pylint: disable=invalid-name
             raise e
         except Exception as e:  # pylint: disable=invalid-name
-            raise UteEnergyException("Cannot logging on to Ute API: " + str(e)) from e
+            raise UteEnergyException(f"Cannot logging on to Ute API: {e}") from e
 
     def _extract_latest_invoice_info(
         self, invoices: list[dict[str, Any]]
@@ -497,9 +498,9 @@ class UteEnergy:
                     active_consumption = content[DATA][0][ACTIVE_CONSUMPTION][
                         SINGLE_SERIE
                     ]
-                    latest_consumption: dict[
-                        str, Any
-                    ] = self._extract_latest_consumption_info(active_consumption)
+                    latest_consumption = self._extract_latest_consumption_info(
+                        active_consumption
+                    )
                     data.update({MONTH_CONSUMPTION: latest_consumption[VALUE]})
                     return data
                 return data
@@ -514,7 +515,7 @@ class UteEnergy:
         except UteApiAccessDenied as e:  # pylint: disable=invalid-name
             raise e
         except Exception as e:  # pylint: disable=invalid-name
-            raise UteEnergyException("Cannot logging on to Ute API: " + str(e)) from e
+            raise UteEnergyException(f"Cannot logging on to Ute API: {e}") from e
 
     def _retrieve_current_power_meter_info(self, account_id: str) -> dict[str, Any]:
         """Retrieve current power meter info from UTE API"""
@@ -526,16 +527,11 @@ class UteEnergy:
 
         _LOGGER.info("Latest reading response: %s", data)
         return data
-        # retrieve last reading request
-
-        # extract data from last reading request
 
     def _send_reading_request(self, account_id: str) -> bool:
         """Send reading request to UTE API"""
         url = f"{BASE_URL}{ENDPOINTS[READING_REQUEST]}"
-        payload: dict[str, str] = {
-            "AccountServicePointId": account_id,
-        }
+        payload: dict[str, str] = {ACCOUNT_SERVICE_POINT_ID: account_id}
 
         try:
             response = self.session.post(url, data=json.dumps(payload))
@@ -554,11 +550,13 @@ class UteEnergy:
                 response.reason,
                 response.text,
             )
-            raise UteEnergyException(str(response.status_code) + response.reason)
+            raise UteEnergyException(
+                f"Error: {response.status_code} : {response.reason}"
+            )
         except UteApiAccessDenied as e:  # pylint: disable=invalid-name
             raise e
         except Exception as e:  # pylint: disable=invalid-name
-            raise UteEnergyException("Cannot logging on to Ute API: " + str(e)) from e
+            raise UteEnergyException(f"Cannot logging on to Ute API: {e}") from e
 
     def _retrieve_latest_reading_info(self, account_id: str) -> dict[str, str]:
         """Send reading request to UTE API"""
@@ -592,10 +590,10 @@ class UteEnergy:
                         data.update({CURRENT_POWER: current_power})
                         return data
                     _LOGGER.debug(
-                        "Waiting 2000 ms due to many requests ....  %s", count
+                        "Waiting 2000 ms to avoid to many requests ....  %s", count
                     )
 
-                    if count > 15:
+                    if count == 25:
                         count = 0
                         reading_in_process = False
 
@@ -609,12 +607,14 @@ class UteEnergy:
                     response.reason,
                     response.text,
                 )
-                raise UteEnergyException(str(response.status_code) + response.reason)
+                raise UteEnergyException(
+                    f"Error: {response.status_code} : {response.reason}"
+                )
             return data
         except UteApiAccessDenied as e:  # pylint: disable=invalid-name
             raise e
         except Exception as e:  # pylint: disable=invalid-name
-            raise UteEnergyException("Cannot logging on to Ute API: " + str(e)) from e
+            raise UteEnergyException(f"Cannot logging on to Ute API: {e}") from e
 
     def _extract_latest_consumption_info(
         self, active_consumption: list[dict[str, Any]]

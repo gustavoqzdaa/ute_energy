@@ -16,11 +16,13 @@ from .ute_energy import UteEnergy
 from .coordinator import UteEnergyDataUpdateCoordinator
 
 from .const import (
-    DOMAIN,
+    ACCOUNT_ID,
+    ACCOUNT_SERVICE_POINT_ID,
     CONNECTION,
     CONF_USER_EMAIL,
     CONF_USER_PHONE,
-    ACCOUNT_SERVICE_POINT_ID,
+    DEFAULT_NAME,
+    DOMAIN,
     ENTRY_NAME,
     ENTRY_COORDINATOR,
     UPDATE_LISTENER,
@@ -54,7 +56,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     hass.data.setdefault(DOMAIN, {})
 
     hass.data[DOMAIN][entry.entry_id] = {
-        ENTRY_NAME: account_id,
+        ENTRY_NAME: DEFAULT_NAME,
+        ACCOUNT_ID: account_id,
         ENTRY_COORDINATOR: coordinator,
     }
 

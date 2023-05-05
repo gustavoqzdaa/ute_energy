@@ -20,9 +20,10 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 
 from .coordinator import UteEnergyDataUpdateCoordinator
-from .utils import convert_to_snake_case
+from .utils import extract_entity_id
 
 from .const import (
+    ACCOUNT_ID,
     ATTRIBUTION,
     CURRENT_STATUS,
     DOMAIN,
@@ -61,12 +62,14 @@ async def async_setup_entry(
     """Set up UTE Energy sensor entities based on a config entry."""
     domain_data = hass.data[DOMAIN][config_entry.entry_id]
     name = domain_data[ENTRY_NAME]
+    account_id = domain_data[ACCOUNT_ID]
     coordinator = domain_data[ENTRY_COORDINATOR]
 
     entities: list[AbstractUteEnergyBinarySensor] = [
         UteEnergyBinarySensor(
             name,
-            f"{config_entry.unique_id}_{description.key}",
+            account_id,
+            f"{config_entry.unique_id}_{account_id}_{description.key}",
             description,
             coordinator,
         )
@@ -93,9 +96,8 @@ class AbstractUteEnergyBinarySensor(BinarySensorEntity):
         self.entity_description = description
         self._coordinator = coordinator
 
-        self._attr_name = description.name
+        self._attr_name = f"{name} {description.name}"
         self._attr_unique_id = unique_id
-        self._attr_state = name
 
     @property
     def available(self) -> bool:
@@ -119,12 +121,13 @@ class UteEnergyBinarySensor(AbstractUteEnergyBinarySensor):
     def __init__(
         self,
         name: str,
+        account_id: str,
         unique_id: str,
         description: UteEnergyBinarySensorDescription,
         coordinator: UteEnergyDataUpdateCoordinator,
     ) -> None:
         """Initialize the sensor."""
-        self.entity_id = f"sensor.{convert_to_snake_case(description.name)}_{name}"
+        self.entity_id = extract_entity_id(name, account_id, description.name)
         super().__init__(name, unique_id, description, coordinator)
         self._coordinator = coordinator
         self._attr_is_on = self.native_value
