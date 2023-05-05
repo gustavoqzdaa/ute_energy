@@ -1,6 +1,8 @@
 {
-    "name": "Ute energy",
+    "name": "Home Assistant custom integration for monitoring energy plan with the Uruguayan energy company (UTE)",
     "hide_default_branch": true,
+    "domains": ["binary_sensor", "sensor"],
     "homeassistant": "2023.4.0",
+    "iot_class": "Cloud Polling",
     "render_readme": true
 }
