@@ -3,7 +3,7 @@
 [![BuyMeCoffee][buymecoffeebadge]][buymecoffee]
 [![PayPal.Me][paypalbadge]][paypal]
 
-# Home Assistant custom integration for monitoring energy plan with the Uruguayan electric company (UTE)
+# Home Assistant integration for UTE (Uruguay)
 
 **This component will set up the following platforms.**
 
@@ -13,13 +13,11 @@
 | `sensor`        | Show info from Ute API. |
 
 ## Features
-#
 
 - Display agreement information (contracted tariff, contracted voltage, contracted power peak, last month consumption, last month charge,...)
 - Current status power meter (Current, Power, Voltage and Status)
 
 ## Installation
-#
 
 1. Using the tool of choice open the directory (folder) for your HA configuration (where you find `configuration.yaml`).
 2. If you do not have a `custom_components` directory (folder) there, you need to create it.
