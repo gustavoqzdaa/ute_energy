@@ -569,7 +569,7 @@ class UteEnergy:
         try:
             data: dict[str, Any] = {}
             reading_in_process = True
-            count = 0
+            count = 1
             while reading_in_process:
                 response = self.session.get(url)
                 if response.status_code == 403:
@@ -592,15 +592,15 @@ class UteEnergy:
                         data.update({CURRENT_POWER: current_power})
                         return data
                     _LOGGER.debug(
-                        "Waiting 3000 ms due to many requests ....  %s", count
+                        "Waiting 2000 ms due to many requests ....  %s", count
                     )
 
-                    if count == 15:
-                        reading_in_process = True
-                        continue
+                    if count > 15:
+                        count = 0
+                        reading_in_process = False
 
                     count += 1
-                    time.sleep(3)
+                    time.sleep(2)
                     continue
 
                 _LOGGER.debug(
