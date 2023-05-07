@@ -179,10 +179,12 @@ class UteEnergy:
     def retrieve_service_account_data(self, account_id: str) -> dict[str, Any]:
         """Retrieve service account data."""
         data = self._retrieve_service_agreement(account_id)
-        data.update(self._retrieve_peak_time(account_id))
+        if self._is_tariff_peak_available(account_id):
+            data.update(self._retrieve_peak_time(account_id))
         data.update(self._retrieve_latest_invoice_info(account_id))
         data.update(self._retrieve_latest_month_consumption_info(account_id))
-        data.update(self._retrieve_current_power_meter_info(account_id))
+        if self._is_remote_reading_available(account_id):
+            data.update(self._retrieve_latest_reading_info(account_id))
         return data
 
     def _retrieve_service_agreement(self, account_id: str) -> dict[str, Any]:
@@ -209,9 +211,6 @@ class UteEnergy:
         """Retrieve account and meter info from UTE API"""
         data: dict[str, str] = {}
 
-        if self._is_tariff_peak_unavailable(account_id):
-            return data
-
         path = ENDPOINTS[PEAK_INFO].format(account_id)
 
         url = f"{BASE_URL}{path}"
@@ -223,7 +222,7 @@ class UteEnergy:
         data.update({peak_time: content[DATA][peak_time]})
         return data
 
-    def _is_tariff_peak_unavailable(self, account_id: str) -> bool:
+    def _is_tariff_peak_available(self, account_id: str) -> bool:
         """Retrieve peak tariff availability"""
         url = f"{BASE_URL}{ENDPOINTS[MISC_BEHAVIOUR]}"
 
@@ -236,9 +235,7 @@ class UteEnergy:
         content = self._call_ute_api(
             "POST", url, "Verify tariff peak selection available", payload
         )
-        if content[RESPONSE_STATUS]:
-            return False
-        return True
+        return content[RESPONSE_STATUS]
 
     def _retrieve_latest_invoice_info(self, account_id: str) -> dict[str, str]:
         """Retrieve latest invoice info"""
@@ -290,16 +287,7 @@ class UteEnergy:
             data.update({MONTH_CONSUMPTION: latest_consumption[VALUE]})
         return data
 
-    def _retrieve_current_power_meter_info(self, account_id: str) -> dict[str, Any]:
-        """Retrieve current power meter info from UTE API"""
-        data: dict[str, Any] = {}
-        if self._send_reading_request(account_id):
-            data = self._retrieve_latest_reading_info(account_id)
-
-        _LOGGER.info("Latest reading response: %s", data)
-        return data
-
-    def _send_reading_request(self, account_id: str) -> bool:
+    def _is_remote_reading_available(self, account_id: str) -> bool:
         """Send reading request to UTE API"""
         url = f"{BASE_URL}{ENDPOINTS[READING_REQUEST]}"
         payload: dict[str, str] = {ACCOUNT_SERVICE_POINT_ID: account_id}

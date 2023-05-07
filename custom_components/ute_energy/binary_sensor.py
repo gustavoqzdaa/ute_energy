@@ -65,16 +65,18 @@ async def async_setup_entry(
     account_id = domain_data[ACCOUNT_ID]
     coordinator = domain_data[ENTRY_COORDINATOR]
 
-    entities: list[AbstractUteEnergyBinarySensor] = [
-        UteEnergyBinarySensor(
-            name,
-            account_id,
-            f"{config_entry.unique_id}_{account_id}_{description.key}",
-            description,
-            coordinator,
-        )
-        for description in BINARY_SENSOR_TYPES
-    ]
+    entities: list[AbstractUteEnergyBinarySensor] = []
+    if coordinator.data.get(CURRENT_STATUS, None):
+        entities: list[AbstractUteEnergyBinarySensor] = [
+            UteEnergyBinarySensor(
+                name,
+                account_id,
+                f"{config_entry.unique_id}_{account_id}_{description.key}",
+                description,
+                coordinator,
+            )
+            for description in BINARY_SENSOR_TYPES
+        ]
 
     async_add_entities(entities)
 

@@ -37,10 +37,12 @@ from .const import (
     CONTRACTED_VOLTAGE,
     CURRENT_CONSUMPTION,
     CURRENT_POWER,
+    CURRENT_STATUS,
     CURRENCY_UYU,
     CURRENT_VOLTAGE,
     DEFAULT_PRECISION,
     DOMAIN,
+    DOUBLE_TARIFF,
     ENTRY_NAME,
     ENTRY_COORDINATOR,
     LATEST_INVOICE,
@@ -48,6 +50,7 @@ from .const import (
     MONTH_CONSUMPTION,
     SELECTED_PEAK,
     SERVICE_AGREEMENT_ID,
+    TRIPLE_TARIFF,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -61,64 +64,7 @@ class UteEnergySensorDescription(SensorEntityDescription):
     parent_key: str | None = None
 
 
-SENSOR_TYPES: tuple[UteEnergySensorDescription, ...] = (
-    UteEnergySensorDescription(
-        key=SERVICE_AGREEMENT_ID,
-        name="Agreement",
-        icon="mdi:identifier",
-    ),
-    UteEnergySensorDescription(
-        key=CONTRACTED_TARIFF,
-        name="Contracted tarrif",
-    ),
-    UteEnergySensorDescription(
-        key=CONTRACTED_VOLTAGE,
-        name="Contracted voltage",
-        icon="mdi:sine-wave",
-    ),
-    UteEnergySensorDescription(
-        key=CONTRACTED_POWER_ON_FLAT,
-        name="Contracted power on flat",
-        native_unit_of_measurement=UnitOfPower.KILO_WATT,
-        device_class=SensorDeviceClass.POWER,
-        entity_registry_enabled_default=False,
-    ),
-    UteEnergySensorDescription(
-        key=CONTRACTED_POWER_ON_VALLEY,
-        name="Contracted power on valley",
-        native_unit_of_measurement=UnitOfPower.KILO_WATT,
-        device_class=SensorDeviceClass.POWER,
-        entity_registry_enabled_default=False,
-    ),
-    UteEnergySensorDescription(
-        key=CONTRACTED_POWER_ON_PEAK,
-        name="Contracted power on peak",
-        native_unit_of_measurement=UnitOfPower.KILO_WATT,
-        device_class=SensorDeviceClass.POWER,
-    ),
-    UteEnergySensorDescription(
-        key=SELECTED_PEAK,
-        name="Peak time",
-        icon="mdi:timer-outline",
-        entity_registry_enabled_default=False,
-    ),
-    UteEnergySensorDescription(
-        key=LATEST_INVOICE,
-        name="Latest month invoice",
-        icon="mdi:calendar-month",
-    ),
-    UteEnergySensorDescription(
-        key=MONTH_CHARGES,
-        name="Latest month charges",
-        native_unit_of_measurement=CURRENCY_UYU,
-        device_class=SensorDeviceClass.MONETARY,
-    ),
-    UteEnergySensorDescription(
-        key=MONTH_CONSUMPTION,
-        name="Latest month consumption",
-        native_unit_of_measurement=UnitOfEnergy.KILO_WATT_HOUR,
-        device_class=SensorDeviceClass.ENERGY,
-    ),
+SENSOR_TYPES_REAL_TIME: tuple[UteEnergySensorDescription, ...] = (
     UteEnergySensorDescription(
         key=CURRENT_CONSUMPTION,
         name="Current",
@@ -145,6 +91,70 @@ SENSOR_TYPES: tuple[UteEnergySensorDescription, ...] = (
     ),
 )
 
+SENSOR_TYPES_TRD_TRT: tuple[UteEnergySensorDescription, ...] = (
+    UteEnergySensorDescription(
+        key=SELECTED_PEAK,
+        name="Peak time",
+        icon="mdi:timer-outline",
+    ),
+)
+
+SENSOR_TYPES_TRT: tuple[UteEnergySensorDescription, ...] = (
+    UteEnergySensorDescription(
+        key=CONTRACTED_POWER_ON_FLAT,
+        name="Contracted power on flat",
+        native_unit_of_measurement=UnitOfPower.KILO_WATT,
+        device_class=SensorDeviceClass.POWER,
+    ),
+    UteEnergySensorDescription(
+        key=CONTRACTED_POWER_ON_VALLEY,
+        name="Contracted power on valley",
+        native_unit_of_measurement=UnitOfPower.KILO_WATT,
+        device_class=SensorDeviceClass.POWER,
+    ),
+)
+
+
+SENSOR_TYPES_COMMON: tuple[UteEnergySensorDescription, ...] = (
+    UteEnergySensorDescription(
+        key=SERVICE_AGREEMENT_ID,
+        name="Agreement",
+        icon="mdi:identifier",
+    ),
+    UteEnergySensorDescription(
+        key=CONTRACTED_TARIFF,
+        name="Contracted tarrif",
+    ),
+    UteEnergySensorDescription(
+        key=CONTRACTED_VOLTAGE,
+        name="Contracted voltage",
+        icon="mdi:sine-wave",
+    ),
+    UteEnergySensorDescription(
+        key=CONTRACTED_POWER_ON_PEAK,
+        name="Contracted power on peak",
+        native_unit_of_measurement=UnitOfPower.KILO_WATT,
+        device_class=SensorDeviceClass.POWER,
+    ),
+    UteEnergySensorDescription(
+        key=LATEST_INVOICE,
+        name="Latest month invoice",
+        icon="mdi:calendar-month",
+    ),
+    UteEnergySensorDescription(
+        key=MONTH_CHARGES,
+        name="Latest month charges",
+        native_unit_of_measurement=CURRENCY_UYU,
+        device_class=SensorDeviceClass.MONETARY,
+    ),
+    UteEnergySensorDescription(
+        key=MONTH_CONSUMPTION,
+        name="Latest month consumption",
+        native_unit_of_measurement=UnitOfEnergy.KILO_WATT_HOUR,
+        device_class=SensorDeviceClass.ENERGY,
+    ),
+)
+
 
 async def async_setup_entry(
     hass: HomeAssistant,
@@ -157,6 +167,8 @@ async def async_setup_entry(
     account_id = domain_data[ACCOUNT_ID]
     coordinator = domain_data[ENTRY_COORDINATOR]
 
+    tariff_plan = coordinator.data.get(CONTRACTED_TARIFF, None)
+
     entities: list[AbstractUteEnergySensor] = [
         UteEnergySensor(
             name,
@@ -165,8 +177,50 @@ async def async_setup_entry(
             description,
             coordinator,
         )
-        for description in SENSOR_TYPES
+        for description in SENSOR_TYPES_COMMON
     ]
+
+    if tariff_plan in (DOUBLE_TARIFF, TRIPLE_TARIFF):
+        entities.extend(
+            [
+                UteEnergySensor(
+                    name,
+                    account_id,
+                    f"{config_entry.unique_id}_{account_id}_{description.key}",
+                    description,
+                    coordinator,
+                )
+                for description in SENSOR_TYPES_TRD_TRT
+            ]
+        )
+
+    if tariff_plan == TRIPLE_TARIFF:
+        entities.extend(
+            [
+                UteEnergySensor(
+                    name,
+                    account_id,
+                    f"{config_entry.unique_id}_{account_id}_{description.key}",
+                    description,
+                    coordinator,
+                )
+                for description in SENSOR_TYPES_TRT
+            ]
+        )
+
+    if coordinator.data.get(CURRENT_STATUS, None):
+        entities.extend(
+            [
+                UteEnergySensor(
+                    name,
+                    account_id,
+                    f"{config_entry.unique_id}_{account_id}_{description.key}",
+                    description,
+                    coordinator,
+                )
+                for description in SENSOR_TYPES_REAL_TIME
+            ]
+        )
 
     async_add_entities(entities)
 
