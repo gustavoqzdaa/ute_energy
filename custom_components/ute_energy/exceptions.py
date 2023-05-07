@@ -19,6 +19,18 @@ class InvalidRequestDataError(UteEnergyError):
 
 
 class UteApiAccessDenied(Exception):
+    """Exception raised for access denied.
+
+    Attributes:
+        message -- explanation of the error
+    """
+
+    def __init__(self, message) -> None:
+        self.message = message
+        super().__init__(self.message)
+
+
+class UteApiUnauthorized(Exception):
     """Exception raised for wrong credentials.
 
     Attributes:

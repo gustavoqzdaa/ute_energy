@@ -46,7 +46,7 @@ from .const import (
     LATEST_INVOICE,
     MONTH_CHARGES,
     MONTH_CONSUMPTION,
-    PEAK_TIME,
+    SELECTED_PEAK,
     SERVICE_AGREEMENT_ID,
 )
 
@@ -97,7 +97,7 @@ SENSOR_TYPES: tuple[UteEnergySensorDescription, ...] = (
         device_class=SensorDeviceClass.POWER,
     ),
     UteEnergySensorDescription(
-        key=PEAK_TIME,
+        key=SELECTED_PEAK,
         name="Peak time",
         icon="mdi:timer-outline",
         entity_registry_enabled_default=False,

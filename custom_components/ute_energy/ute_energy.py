@@ -18,6 +18,7 @@ from .utils import (
 from .exceptions import (
     UteEnergyException,
     UteApiAccessDenied,
+    UteApiUnauthorized,
 )
 
 from .const import (
@@ -44,11 +45,12 @@ from .const import (
     MISC_BEHAVIOUR,
     LATEST_INVOICE,
     LAST_READING,
+    METER_PEAK,
     MONTH,
     MONTH_CHARGES,
     MONTH_CONSUMPTION,
     PEAK_INFO,
-    PEAK_TIME,
+    SELECTED_PEAK,
     PHONE_LENGHT,
     PHONE_START_WIHT,
     READINGS,
@@ -92,17 +94,6 @@ class UteEnergy:
 
         self.client_id = generate_random_string(6)
 
-    def _check_credentials(self) -> bool:
-        """Return True if user data are valid."""
-        if (
-            isinstance(self.email, str)
-            and isinstance(self.phone, str)
-            and len(self.phone) == PHONE_LENGHT
-            and self.phone.startswith(PHONE_START_WIHT)
-        ):
-            return True
-        return False
-
     def login(self) -> bool:
         """Login in to Ute API.
 
@@ -114,89 +105,43 @@ class UteEnergy:
         if self.email and self.service_token:
             return True
 
-        try:
-            if self._login_request():
-                self.failed_logins = 0
-            else:
-                self.failed_logins += 1
-                _LOGGER.debug("Ute API login attempt %s", self.failed_logins)
-        except UteEnergyException as error:
-            _LOGGER.debug(
-                "Error logging on to Ute API (%s): %s",
-                self.failed_logins,
-                error.message,
+        self._init_session()
+
+        url = BASE_URL + ENDPOINTS[REQUEST_TOKEN]
+        payload: dict[str, str] = {"Email": self.email, "PhoneNumber": self.phone}
+
+        response = self._call_ute_api("POST", url, "Login", payload)
+
+        service_token = response.text
+
+        if service_token:
+            self.service_token = service_token
+            self.session.headers.update(
+                {"Authorization": f"{TOKEN_TYPE} {self.service_token}"}
             )
-            self.failed_logins += 1
-            self.service_token = None
-            if self.failed_logins > 10:
-                _LOGGER.debug(
-                    "Repeated errors logging on to Ute API. Cleaning stored cookies"
-                )
-                self._init_session(reset=True)
-            return False
-        except UteApiAccessDenied as error:
-            _LOGGER.debug(
-                "Access denied when logging  on to Ute API. (%s): %s",
-                self.failed_logins,
-                error.message,
-            )
-            self.failed_logins += 1
-            self.service_token = None
-            if self.failed_logins > 10:
-                _LOGGER.debug(
-                    "Repeated errors logging  on to Ute API. Cleaning stored cookies"
-                )
-                self._init_session(reset=True)
-            raise error
-        except:  # pylint: disable=bare-except
-            _LOGGER.exception("Unknown exception occurred!")
-            return False
+            return True
+        return False
 
-        return True
-
-    def _login_request(self) -> bool:
-        try:
-            self._init_session()
-
-            url = BASE_URL + ENDPOINTS[REQUEST_TOKEN]
-            payload: dict[str, str] = {"Email": self.email, "PhoneNumber": self.phone}
-
-            response = self.session.post(url, data=json.dumps(payload))
-
-            if response.status_code == 403:
-                raise UteApiAccessDenied(
-                    "Access denied. Did you set the correct api key and/or username?"
-                )
-            if response.status_code == 200:
-                service_token = response.text
-                if service_token:
-                    self.service_token = service_token
-                    self.session.headers.update(
-                        {"Authorization": f"{TOKEN_TYPE} {self.service_token}"}
-                    )
-                return True
-            _LOGGER.debug(
-                "request returned status '%s', reason: %s, content: %s",
-                response.status_code,
-                response.reason,
-                response.text,
-            )
-            raise UteEnergyException(str(response.status_code) + response.reason)
-        except UteApiAccessDenied as error:
-            raise error
-        except Exception as error:
-            raise error
+    def _check_credentials(self) -> bool:
+        """Return True if user data are valid."""
+        if (
+            isinstance(self.email, str)
+            and isinstance(self.phone, str)
+            and len(self.phone) == PHONE_LENGHT
+            and self.phone.startswith(PHONE_START_WIHT)
+        ):
+            return True
+        return False
 
     def _init_session(self, reset=False):
+        """Initilize session object."""
         if not self.session or reset:
             self.session = requests.Session()
             self.session.verify = False
             self.session.headers.update(HEADERS)
 
-    def request_auth_code(self) -> Any:
+    def request_auth_code(self) -> None:
         """Retrieve auth code from UTE API."""
-
-        # token = await self.get_token_key()
 
         url = BASE_URL + ENDPOINTS[REQUEST_CODE]
 
@@ -210,28 +155,7 @@ class UteEnergy:
             "UniqueId": None,
         }
 
-        try:
-            response = self.session.post(url, data=json.dumps(payload))
-
-            if response.status_code == 403:
-                raise UteApiAccessDenied(
-                    "Access denied. Did you set the correct emal and/or phone?"
-                )
-
-            if response.status_code == 200:
-                return response.json()
-
-            _LOGGER.debug(
-                "request returned status '%s', reason: %s, content: %s",
-                response.status_code,
-                response.reason,
-                response.text,
-            )
-            raise UteEnergyException(str(response.status_code) + response.reason)
-        except UteApiAccessDenied as e:  # pylint: disable=invalid-name
-            raise e
-        except Exception as e:  # pylint: disable=invalid-name
-            raise UteEnergyException(f"Cannot logging on to Ute API: {e}") from e
+        return self._call_ute_api("POST", url, "Request auth code", payload)
 
     def validate_auth_code(self, code: str) -> bool:
         """Validate authentication code"""
@@ -240,61 +164,21 @@ class UteEnergy:
 
         payload: dict[str, str] = {"ValidationCode": code}
 
-        try:
-            response = self.session.post(url, data=json.dumps(payload))
+        response = self._call_ute_api(
+            "POST", url, "Validate authentication code", payload
+        )
 
-            if response.status_code == 403:
-                raise UteApiAccessDenied(
-                    "Access denied. Did you set the correct api key and/or username?"
-                )
-
-            if response.status_code == 200:
-                return True
-
-            _LOGGER.debug(
-                "request returned status '%s', reason: %s, content: %s",
-                response.status_code,
-                response.reason,
-                response.text,
-            )
-            raise UteEnergyException(str(response.status_code) + response.reason)
-        except UteApiAccessDenied as e:  # pylint: disable=invalid-name
-            raise e
-        except Exception as e:  # pylint: disable=invalid-name
-            raise UteEnergyException("Cannot logon to Ute API: {}".format(e)) from e
+        return response[RESPONSE_STATUS]
 
     def request_accounts(self) -> Any:
         """Request all user account services"""
-
         url = BASE_URL + ENDPOINTS[BASE_ACCOUNTS]
-
-        try:
-            response = self.session.get(url)
-
-            if response.status_code == 403:
-                raise UteApiAccessDenied(
-                    "Access denied. Did you set the correct emal and/or phone?"
-                )
-
-            if response.status_code == 200:
-                content = response.json()
-                return content["data"]
-
-            _LOGGER.debug(
-                "request returned status '%s', reason: %s, content: %s",
-                response.status_code,
-                response.reason,
-                response.text,
-            )
-            raise UteEnergyException(str(response.status_code) + response.reason)
-        except UteApiAccessDenied as e:  # pylint: disable=invalid-name
-            raise e
-        except Exception as e:  # pylint: disable=invalid-name
-            raise UteEnergyException(f"Cannot logging on to Ute API: {e}") from e
+        content = self._call_ute_api("GET", url, "Request accounts")
+        return content[DATA]
 
     def retrieve_service_account_data(self, account_id: str) -> dict[str, Any]:
         """Retrieve service account data."""
-        data: dict[str, Any] = self._retrieve_service_agreement(account_id)
+        data = self._retrieve_service_agreement(account_id)
         data.update(self._retrieve_peak_time(account_id))
         data.update(self._retrieve_latest_invoice_info(account_id))
         data.update(self._retrieve_latest_month_consumption_info(account_id))
@@ -304,48 +188,22 @@ class UteEnergy:
     def _retrieve_service_agreement(self, account_id: str) -> dict[str, Any]:
         """Retrieve agreement and meter info from UTE API"""
         url = f"{BASE_URL}{ENDPOINTS[BASE_ACCOUNTS]}/{account_id}"
-        try:
-            response = self.session.get(url)
 
-            if response.status_code == 403:
-                raise UteApiAccessDenied(
-                    "Access denied. Did you set the correct emal and/or phone?"
-                )
+        data: dict[str, Any] = {}
+        content = self._call_ute_api("GET", url, "Retrieve service agreement")
+        agreement_info = content[DATA][AGREEMENT_INFO]
+        data.update(
+            {
+                SERVICE_AGREEMENT_ID: agreement_info[SERVICE_AGREEMENT_ID],
+                CONTRACTED_TARIFF: agreement_info[CONTRACTED_TARIFF],
+                CONTRACTED_VOLTAGE: agreement_info[CONTRACTED_VOLTAGE],
+                CONTRACTED_POWER_ON_PEAK: agreement_info[CONTRACTED_POWER_ON_PEAK],
+                CONTRACTED_POWER_ON_VALLEY: agreement_info[CONTRACTED_POWER_ON_VALLEY],
+                CONTRACTED_POWER_ON_FLAT: agreement_info[CONTRACTED_POWER_ON_FLAT],
+            }
+        )
 
-            if response.status_code == 200:
-                data: dict[str, Any] = {}
-                content = response.json()
-                agreement_info = content[DATA][AGREEMENT_INFO]
-                data.update(
-                    {
-                        SERVICE_AGREEMENT_ID: agreement_info[SERVICE_AGREEMENT_ID],
-                        CONTRACTED_TARIFF: agreement_info[CONTRACTED_TARIFF],
-                        CONTRACTED_VOLTAGE: agreement_info[CONTRACTED_VOLTAGE],
-                        CONTRACTED_POWER_ON_PEAK: agreement_info[
-                            CONTRACTED_POWER_ON_PEAK
-                        ],
-                        CONTRACTED_POWER_ON_VALLEY: agreement_info[
-                            CONTRACTED_POWER_ON_VALLEY
-                        ],
-                        CONTRACTED_POWER_ON_FLAT: agreement_info[
-                            CONTRACTED_POWER_ON_FLAT
-                        ],
-                    }
-                )
-
-                return data
-
-            _LOGGER.debug(
-                "request returned status '%s', reason: %s, content: %s",
-                response.status_code,
-                response.reason,
-                response.text,
-            )
-            raise UteEnergyException(str(response.status_code) + response.reason)
-        except UteApiAccessDenied as e:  # pylint: disable=invalid-name
-            raise e
-        except Exception as e:  # pylint: disable=invalid-name
-            raise UteEnergyException("Cannot logging on to Ute API: " + str(e)) from e
+        return data
 
     def _retrieve_peak_time(self, account_id: str) -> dict[str, str] | None:
         """Retrieve account and meter info from UTE API"""
@@ -358,33 +216,12 @@ class UteEnergy:
 
         url = f"{BASE_URL}{path}"
 
-        try:
-            response = self.session.get(url)
+        content = self._call_ute_api("GET", url, "Retrieve peak time")
 
-            if response.status_code == 403:
-                raise UteApiAccessDenied(
-                    "Access denied. Did you set the correct emal and/or phone?"
-                )
+        peak_time = SELECTED_PEAK or METER_PEAK
 
-            if response.status_code == 200:
-                data: dict[str, Any] = {}
-                content = response.json()
-                peack_info = content[DATA][PEAK_TIME]
-                assert peack_info is not None
-                data.update({PEAK_TIME: peack_info})
-                return data
-
-            _LOGGER.debug(
-                "request returned status '%s', reason: %s, content: %s",
-                response.status_code,
-                response.reason,
-                response.text,
-            )
-            raise UteEnergyException(str(response.status_code) + response.reason)
-        except UteApiAccessDenied as e:  # pylint: disable=invalid-name
-            raise e
-        except Exception as e:  # pylint: disable=invalid-name
-            raise UteEnergyException(f"Cannot logging on to Ute API: {e}") from e
+        data.update({peak_time: content[DATA][peak_time]})
+        return data
 
     def _is_tariff_peak_unavailable(self, account_id: str) -> bool:
         """Retrieve peak tariff availability"""
@@ -396,74 +233,32 @@ class UteEnergy:
             ACCOUNT_SERVICE_POINT_ID: account_id,
         }
 
-        try:
-            response = self.session.post(url, data=json.dumps(payload))
-            if response.status_code == 403:
-                raise UteApiAccessDenied(
-                    "Access denied. Did you set the correct emal and/or phone?"
-                )
-
-            if response.status_code == 200:
-                content = response.json()
-                if content[RESPONSE_STATUS]:
-                    return False
-                return True
-
-            _LOGGER.debug(
-                "request returned status '%s', reason: %s, content: %s",
-                response.status_code,
-                response.reason,
-                response.text,
-            )
-            raise UteEnergyException(str(response.status_code) + response.reason)
-        except UteApiAccessDenied as e:  # pylint: disable=invalid-name
-            raise e
-        except Exception as e:  # pylint: disable=invalid-name
-            raise UteEnergyException(f"Cannot logging on to Ute API: {e}") from e
+        content = self._call_ute_api(
+            "POST", url, "Verify tariff peak selection available", payload
+        )
+        if content[RESPONSE_STATUS]:
+            return False
+        return True
 
     def _retrieve_latest_invoice_info(self, account_id: str) -> dict[str, str]:
         """Retrieve latest invoice info"""
         path = ENDPOINTS[INVOICE_INFO].format(account_id)
         url = f"{BASE_URL}/{path}"
 
-        try:
-            response = self.session.get(url)
+        data: dict[str, Any] = {}
+        content = self._call_ute_api("GET", url, "Retrieve latest invoice info")
 
-            if response.status_code == 403:
-                raise UteApiAccessDenied(
-                    "Access denied. Did you set the correct emal and/or phone?"
-                )
-
-            if response.status_code == 200:
-                data: dict[str, Any] = {}
-                content = response.json()
-
-                if content[RESPONSE_STATUS]:
-                    invoices = content[DATA][INVOICES]
-
-                    latest_invoice = self._extract_latest_invoice_info(invoices)
-                    _month = convert_number_to_month(latest_invoice[MONTH])
-
-                    data.update(
-                        {
-                            LATEST_INVOICE: f"{_month} {latest_invoice[YEAR]}",
-                            MONTH_CHARGES: latest_invoice[MONTH_CHARGES],
-                        }
-                    )
-
-                    return data
-
-            _LOGGER.debug(
-                "request returned status '%s', reason: %s, content: %s",
-                response.status_code,
-                response.reason,
-                response.text,
+        if content[RESPONSE_STATUS]:
+            invoices = content[DATA][INVOICES]
+            latest_invoice = self._extract_latest_invoice_info(invoices)
+            _month = convert_number_to_month(latest_invoice[MONTH])
+            data.update(
+                {
+                    LATEST_INVOICE: f"{_month} {latest_invoice[YEAR]}",
+                    MONTH_CHARGES: latest_invoice[MONTH_CHARGES],
+                }
             )
-            raise UteEnergyException(str(response.status_code) + response.reason)
-        except UteApiAccessDenied as e:  # pylint: disable=invalid-name
-            raise e
-        except Exception as e:  # pylint: disable=invalid-name
-            raise UteEnergyException(f"Cannot logging on to Ute API: {e}") from e
+        return data
 
     def _extract_latest_invoice_info(
         self, invoices: list[dict[str, Any]]
@@ -484,45 +279,21 @@ class UteEnergy:
         path = ENDPOINTS[REQUEST_CONSUMPTION].format(account_id)
         url = f"{BASE_URL}/{path}"
 
-        try:
-            response = self.session.get(url)
-            if response.status_code == 403:
-                raise UteApiAccessDenied(
-                    "Access denied. Did you set the correct emal and/or phone?"
-                )
+        data: dict[str, Any] = {}
+        content = self._call_ute_api("GET", url, "Retrieve latest consumption")
 
-            if response.status_code == 200:
-                data: dict[str, Any] = {}
-                content = response.json()
-                if content[RESPONSE_STATUS]:
-                    active_consumption = content[DATA][0][ACTIVE_CONSUMPTION][
-                        SINGLE_SERIE
-                    ]
-                    latest_consumption = self._extract_latest_consumption_info(
-                        active_consumption
-                    )
-                    data.update({MONTH_CONSUMPTION: latest_consumption[VALUE]})
-                    return data
-                return data
-
-            _LOGGER.debug(
-                "request returned status '%s', reason: %s, content: %s",
-                response.status_code,
-                response.reason,
-                response.text,
+        if content[RESPONSE_STATUS]:
+            active_consumption = content[DATA][0][ACTIVE_CONSUMPTION][SINGLE_SERIE]
+            latest_consumption = self._extract_latest_consumption_info(
+                active_consumption
             )
-            raise UteEnergyException(str(response.status_code) + response.reason)
-        except UteApiAccessDenied as e:  # pylint: disable=invalid-name
-            raise e
-        except Exception as e:  # pylint: disable=invalid-name
-            raise UteEnergyException(f"Cannot logging on to Ute API: {e}") from e
+            data.update({MONTH_CONSUMPTION: latest_consumption[VALUE]})
+        return data
 
     def _retrieve_current_power_meter_info(self, account_id: str) -> dict[str, Any]:
         """Retrieve current power meter info from UTE API"""
-
         data: dict[str, Any] = {}
-        # make reading request
-        if is_reading_request := self._send_reading_request(account_id):
+        if self._send_reading_request(account_id):
             data = self._retrieve_latest_reading_info(account_id)
 
         _LOGGER.info("Latest reading response: %s", data)
@@ -533,88 +304,39 @@ class UteEnergy:
         url = f"{BASE_URL}{ENDPOINTS[READING_REQUEST]}"
         payload: dict[str, str] = {ACCOUNT_SERVICE_POINT_ID: account_id}
 
-        try:
-            response = self.session.post(url, data=json.dumps(payload))
-            if response.status_code == 403:
-                raise UteApiAccessDenied(
-                    "Access denied. Did you set the correct emal and/or phone?"
-                )
-
-            if response.status_code == 200:
-                content = response.json()
-                return content[RESPONSE_STATUS]
-
-            _LOGGER.debug(
-                "request returned status '%s', reason: %s, content: %s",
-                response.status_code,
-                response.reason,
-                response.text,
-            )
-            raise UteEnergyException(
-                f"Error: {response.status_code} : {response.reason}"
-            )
-        except UteApiAccessDenied as e:  # pylint: disable=invalid-name
-            raise e
-        except Exception as e:  # pylint: disable=invalid-name
-            raise UteEnergyException(f"Cannot logging on to Ute API: {e}") from e
+        content = self._call_ute_api("POST", url, "Send reading request", payload)
+        return content[RESPONSE_STATUS]
 
     def _retrieve_latest_reading_info(self, account_id: str) -> dict[str, str]:
         """Send reading request to UTE API"""
-
         path = ENDPOINTS[LAST_READING].format(account_id)
         url = f"{BASE_URL}/{path}"
 
-        try:
-            data: dict[str, Any] = {}
-            reading_in_process = True
-            count = 1
-            while reading_in_process:
-                response = self.session.get(url)
-                if response.status_code == 403:
-                    raise UteApiAccessDenied(
-                        "Access denied. Did you set the correct emal and/or phone?"
-                    )
+        data: dict[str, Any] = {}
+        reading_in_process = True
+        count = 1
+        while reading_in_process:
+            content = self._call_ute_api("GET", url, "Retrieve latest reading info")
+            if content[RESPONSE_STATUS]:
+                reading_in_process = False
+                latest_reading = content[DATA][READINGS]
 
-                if response.status_code == 200:
-                    content = response.json()
-                    if content[RESPONSE_STATUS]:
-                        reading_in_process = False
-                        latest_reading = content[DATA][READINGS]
+                for status in latest_reading:
+                    data[status[CONSUMPTION_ATTR]] = status[VALOR]
 
-                        for status in latest_reading:
-                            data[status[CONSUMPTION_ATTR]] = status[VALOR]
-
-                        current_power = float(data[CURRENT_VOLTAGE]) * float(
-                            data[CURRENT_CONSUMPTION]
-                        )
-                        data.update({CURRENT_POWER: current_power})
-                        return data
-                    _LOGGER.debug(
-                        "Waiting 2000 ms to avoid to many requests ....  %s", count
-                    )
-
-                    if count == 25:
-                        count = 0
-                        reading_in_process = False
-
-                    count += 1
-                    time.sleep(2)
-                    continue
-
-                _LOGGER.debug(
-                    "request returned status '%s', reason: %s, content: %s",
-                    response.status_code,
-                    response.reason,
-                    response.text,
+                current_power = float(data[CURRENT_VOLTAGE]) * float(
+                    data[CURRENT_CONSUMPTION]
                 )
-                raise UteEnergyException(
-                    f"Error: {response.status_code} : {response.reason}"
-                )
-            return data
-        except UteApiAccessDenied as e:  # pylint: disable=invalid-name
-            raise e
-        except Exception as e:  # pylint: disable=invalid-name
-            raise UteEnergyException(f"Cannot logging on to Ute API: {e}") from e
+                data.update({CURRENT_POWER: current_power})
+                return data
+            if count == 25:
+                count = 0
+                reading_in_process = False
+
+            count += 1
+            _LOGGER.debug("Waiting 2000 ms to avoid to many requests ....  %s", count)
+            time.sleep(2)
+            continue
 
     def _extract_latest_consumption_info(
         self, active_consumption: list[dict[str, Any]]
@@ -635,3 +357,44 @@ class UteEnergy:
                 active_consumption, key=lambda x: x[MONTH_CONSUMPTION]
             )
         return latest_consumption
+
+    def _call_ute_api(self, method, url, action, payload=None) -> dict[str, Any]:
+        """Execute request to UTE API."""
+        try:
+            json_data = json.dumps(payload) if payload is not None else None
+            response = self.session.request(method, url, data=json_data)
+
+            if response.status_code == 200:
+                if action == "Login":
+                    return response
+                _LOGGER.debug(
+                    "%s return status: %s, content: %s",
+                    action,
+                    response.status_code,
+                    response.json(),
+                )
+                return response.json()
+
+            message = (
+                f"{action} return status: {response.status_code}, reason: {response.reason}, content: {response.text}",
+            )
+
+            if response.status_code == 401:
+                raise UteApiAccessDenied(message)
+
+            if response.status_code == 403:
+                raise UteApiUnauthorized(message)
+
+            raise UteEnergyException(message)
+
+        except (
+            UteApiUnauthorized,
+            UteApiAccessDenied,
+            UteEnergyException,
+        ) as error:
+            _LOGGER.error(error.message)
+            raise error
+
+        except Exception as error:
+            _LOGGER.error("%s failed: %s", action, error, exc_info=True)
+            raise error
