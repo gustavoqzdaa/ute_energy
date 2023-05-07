@@ -18,7 +18,6 @@ from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, Upda
 from .const import (
     DEFAULT_NAME,
     DOMAIN,
-    ENTRY_NAME,
     MANUFACTURER,
     SOURCE_URL,
 )
@@ -72,11 +71,10 @@ class UteEnergyDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
     @property
     def device_info(self) -> DeviceInfo:
         """Device info."""
-        domain_data = self.hass.data[DOMAIN][self._device_key]
         return DeviceInfo(
             model=DEFAULT_NAME,
             entry_type=DeviceEntryType.SERVICE,
-            identifiers={(DOMAIN, f"{domain_data[ENTRY_NAME]}")},
+            identifiers={(DOMAIN, self._device_key)},
             manufacturer=MANUFACTURER,
             name=DEFAULT_NAME,
             configuration_url=SOURCE_URL,
