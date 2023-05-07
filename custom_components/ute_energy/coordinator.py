@@ -8,7 +8,7 @@ import async_timeout
 
 from homeassistant.core import HomeAssistant
 from .ute_energy import UteEnergy
-from .exceptions import ApiError, UteApiAccessDenied, UteEnergyException
+from .exceptions import UteApiUnauthorized, UteApiAccessDenied, UteEnergyException
 from homeassistant.helpers.entity import DeviceInfo
 from homeassistant.helpers.device_registry import DeviceEntryType
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
@@ -50,11 +50,15 @@ class UteEnergyDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
     async def _async_update_data(self) -> dict[str:Any]:
         """Update the data."""
         data = {}
-        async with async_timeout.timeout(60):
+        async with async_timeout.timeout(120):
             try:
                 await self.hass.async_add_executor_job(self._ute_api.login)
                 data = await self._service_account_data()
-            except (ApiError, UteApiAccessDenied, UteEnergyException) as error:
+            except (
+                UteApiUnauthorized,
+                UteApiAccessDenied,
+                UteEnergyException,
+            ) as error:
                 raise UpdateFailed(error) from error
         return data
 

@@ -328,15 +328,20 @@ class UteEnergy:
                     data[CURRENT_CONSUMPTION]
                 )
                 data.update({CURRENT_POWER: current_power})
-                return data
-            if count == 25:
+            if count == 40:
                 count = 0
                 reading_in_process = False
+                continue
 
             count += 1
-            _LOGGER.debug("Waiting 2000 ms to avoid to many requests ....  %s", count)
-            time.sleep(2)
+            _LOGGER.debug(
+                "Waiting 2000 ms to avoid to many requests, account: %s, request: #%s",
+                account_id,
+                count,
+            )
+            time.sleep(3)
             continue
+        return data
 
     def _extract_latest_consumption_info(
         self, active_consumption: list[dict[str, Any]]
