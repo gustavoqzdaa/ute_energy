@@ -34,6 +34,7 @@ from .const import (
     CONTRACTED_POWER_ON_VALLEY,
     CONTRACTED_POWER_ON_FLAT,
     CURRENT_CONSUMPTION,
+    CURRENT_ENERGY_CONSUMPTION,
     CURRENT_POWER,
     CURRENT_VOLTAGE,
     DATA,
@@ -62,6 +63,7 @@ from .const import (
     SINGLE_SERIE,
     SERVICE_AGREEMENT_ID,
     TOKEN_TYPE,
+    SYNC_INTERVAL,
     VALIDATE_CODE,
     VALOR,
     VALUE,
@@ -316,6 +318,8 @@ class UteEnergy:
                     data[CURRENT_CONSUMPTION]
                 )
                 data.update({CURRENT_POWER: current_power})
+                current_energy = (current_power * (SYNC_INTERVAL / 60)) / 1000
+                data.update({CURRENT_ENERGY_CONSUMPTION: current_energy})
             if count == 40:
                 count = 0
                 reading_in_process = False

@@ -16,7 +16,7 @@ INVOICE_INFO: str = "INVOICE_INFO"
 REQUEST_CONSUMPTION: str = "REQUEST_CONSUMPTION"
 READING_REQUEST: str = "READING_REQUEST"
 LAST_READING: str = "LAST_READING"
-DEFAULT_PRECISION: int = 1
+DEFAULT_PRECISION: int = 2
 
 PROTO: str = "https"
 HOST: str = "rocme.ute.com.uy"
@@ -85,6 +85,7 @@ METER_PEAK = "meterPeakStartDescription"
 MONTH_CONSUMPTION = "categoryLong"
 ACTIVE_CONSUMPTION = "consumosActiva"
 SINGLE_SERIE = "unaSerie"
+SYNC_INTERVAL: int = 10
 
 ATTRIBUTION = "Data provided by Ute Energy"
 DATA = "data"
@@ -97,5 +98,6 @@ READINGS = "readings"
 CURRENT_POWER = "current_power"
 CONSUMPTION_ATTR = "tipoLecturaMGMI"
 CURRENT_CONSUMPTION = "I1"
+CURRENT_ENERGY_CONSUMPTION = "current_energy_consumption"
 CURRENT_VOLTAGE = "V1"
 CURRENT_STATUS = "RELAY_ON"

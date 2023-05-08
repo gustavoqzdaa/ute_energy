@@ -20,11 +20,12 @@ from .const import (
     DOMAIN,
     MANUFACTURER,
     SOURCE_URL,
+    SYNC_INTERVAL,
 )
 
 _LOGGER = logging.getLogger(__name__)
 
-UPDATE_INTERVAL = timedelta(minutes=10)
+UPDATE_INTERVAL = timedelta(minutes=SYNC_INTERVAL)
 
 
 class UteEnergyDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
