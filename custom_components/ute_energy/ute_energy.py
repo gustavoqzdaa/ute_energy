@@ -306,6 +306,11 @@ class UteEnergy:
         reading_in_process = True
         count = 1
         while reading_in_process:
+            _LOGGER.debug(
+                "Waiting 3000 ms to avoid to many requests, account: %s, request: #%s",
+                account_id,
+                count,
+            )
             content = self._call_ute_api("GET", url, "Retrieve latest reading info")
             if content[RESPONSE_STATUS]:
                 reading_in_process = False
@@ -320,17 +325,13 @@ class UteEnergy:
                 data.update({CURRENT_POWER: current_power})
                 current_energy = (current_power * (SYNC_INTERVAL / 60)) / 1000
                 data.update({CURRENT_ENERGY_CONSUMPTION: current_energy})
+                continue
             if count == 40:
                 count = 0
                 reading_in_process = False
                 continue
 
             count += 1
-            _LOGGER.debug(
-                "Waiting 2000 ms to avoid to many requests, account: %s, request: #%s",
-                account_id,
-                count,
-            )
             time.sleep(3)
             continue
         return data
