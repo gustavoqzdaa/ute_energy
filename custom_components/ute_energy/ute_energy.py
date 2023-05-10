@@ -3,11 +3,12 @@ from __future__ import annotations
 
 import logging
 import json
-import requests
 import datetime
 import time
 
 from typing import Any
+import requests
+
 from .utils import (
     generate_random_string,
     generate_random_agent_id,
@@ -34,7 +35,6 @@ from .const import (
     CONTRACTED_POWER_ON_VALLEY,
     CONTRACTED_POWER_ON_FLAT,
     CURRENT_CONSUMPTION,
-    CURRENT_ENERGY_CONSUMPTION,
     CURRENT_POWER,
     CURRENT_VOLTAGE,
     DATA,
@@ -46,7 +46,9 @@ from .const import (
     MISC_BEHAVIOUR,
     LATEST_INVOICE,
     LAST_READING,
+    LIMIT_REQUEST,
     METER_PEAK,
+    MAX_WAIT_TIME,
     MONTH,
     MONTH_CHARGES,
     MONTH_CONSUMPTION,
@@ -63,7 +65,6 @@ from .const import (
     SINGLE_SERIE,
     SERVICE_AGREEMENT_ID,
     TOKEN_TYPE,
-    SYNC_INTERVAL,
     VALIDATE_CODE,
     VALOR,
     VALUE,
@@ -307,7 +308,8 @@ class UteEnergy:
         count = 1
         while reading_in_process:
             _LOGGER.debug(
-                "Waiting 3000 ms to avoid to many requests, account: %s, request: #%s",
+                "Waiting %s s to avoid to many requests, account: %s, request: #%s",
+                MAX_WAIT_TIME,
                 account_id,
                 count,
             )
@@ -323,16 +325,14 @@ class UteEnergy:
                     data[CURRENT_CONSUMPTION]
                 )
                 data.update({CURRENT_POWER: current_power})
-                current_energy = (current_power * (SYNC_INTERVAL / 60)) / 1000
-                data.update({CURRENT_ENERGY_CONSUMPTION: current_energy})
                 continue
-            if count == 40:
+            if count == LIMIT_REQUEST:
                 count = 0
                 reading_in_process = False
                 continue
 
             count += 1
-            time.sleep(3)
+            time.sleep(MAX_WAIT_TIME)
             continue
         return data
 

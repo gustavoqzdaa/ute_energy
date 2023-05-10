@@ -12,7 +12,7 @@
         },
         "step": {
             "auth": {
-                "description": "Input the email and phone registered on UTE. Phone shuould be like '598123456'",
+                "description": "Input the email and phone registered on UTE. Phone should be like '598123456'",
                 "data": {
                     "email": "Email",
                     "phone": "Phone"

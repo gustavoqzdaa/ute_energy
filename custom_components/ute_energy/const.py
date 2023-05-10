@@ -86,7 +86,8 @@ MONTH_CONSUMPTION = "categoryLong"
 ACTIVE_CONSUMPTION = "consumosActiva"
 SINGLE_SERIE = "unaSerie"
 SYNC_INTERVAL: int = 10
-
+LIMIT_REQUEST: int = 40
+MAX_WAIT_TIME: int = 3
 ATTRIBUTION = "Data provided by Ute Energy"
 DATA = "data"
 MONTH = "month"
@@ -98,6 +99,5 @@ READINGS = "readings"
 CURRENT_POWER = "current_power"
 CONSUMPTION_ATTR = "tipoLecturaMGMI"
 CURRENT_CONSUMPTION = "I1"
-CURRENT_ENERGY_CONSUMPTION = "current_energy_consumption"
 CURRENT_VOLTAGE = "V1"
 CURRENT_STATUS = "RELAY_ON"
