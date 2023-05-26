@@ -5,6 +5,11 @@
 
 # Home Assistant integration for UTE (Uruguay)
 
+:warning: **Disclaimer** :warning:  
+*The use of the name "UTE" in this context does not imply any affiliation, endorsement, or association with UTE, its products or services. The use of the name is not intended to cause confusion or infringe upon UTE's intellectual property rights.*  
+  
+  
+
 **This component will set up the following platforms.**
 
 | Platform        | Description                                                               |
