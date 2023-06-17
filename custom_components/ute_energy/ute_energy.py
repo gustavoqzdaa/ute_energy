@@ -46,7 +46,6 @@ from .const import (
     MISC_BEHAVIOUR,
     LATEST_INVOICE,
     LAST_READING,
-    LIMIT_REQUEST,
     METER_PEAK,
     MAX_WAIT_TIME,
     MONTH,
@@ -57,10 +56,12 @@ from .const import (
     PHONE_LENGHT,
     PHONE_START_WIHT,
     READINGS,
+    READING_INPROGRESS,
     READING_REQUEST,
     REQUEST_CODE,
     REQUEST_CONSUMPTION,
     REQUEST_TOKEN,
+    RESPONSE_RESULT,
     RESPONSE_STATUS,
     SINGLE_SERIE,
     SERVICE_AGREEMENT_ID,
@@ -140,7 +141,6 @@ class UteEnergy:
         """Initilize session object."""
         if not self.session or reset:
             self.session = requests.Session()
-            self.session.verify = False
             self.session.headers.update(HEADERS)
 
     def request_auth_code(self) -> None:
@@ -304,9 +304,10 @@ class UteEnergy:
         url = f"{BASE_URL}/{path}"
 
         data: dict[str, Any] = {}
-        reading_in_process = True
+        # reading_in_process = True
+        reading_result = READING_INPROGRESS
         count = 1
-        while reading_in_process:
+        while reading_result == READING_INPROGRESS:
             _LOGGER.debug(
                 "Waiting %s s to avoid to many requests, account: %s, request: #%s",
                 MAX_WAIT_TIME,
@@ -314,11 +315,15 @@ class UteEnergy:
                 count,
             )
             content = self._call_ute_api("GET", url, "Retrieve latest reading info")
-            if content[RESPONSE_STATUS]:
-                reading_in_process = False
+
+            if content[RESPONSE_RESULT] != READING_INPROGRESS:
+                reading_result = content[RESPONSE_RESULT]
                 latest_reading = content[DATA][READINGS]
 
                 for status in latest_reading:
+                    if status[VALOR] == "true":
+                        status[VALOR] = True
+
                     data[status[CONSUMPTION_ATTR]] = status[VALOR]
 
                 current_power = float(data[CURRENT_VOLTAGE]) * float(
@@ -326,14 +331,10 @@ class UteEnergy:
                 )
                 data.update({CURRENT_POWER: current_power})
                 continue
-            if count == LIMIT_REQUEST:
-                count = 0
-                reading_in_process = False
-                continue
 
             count += 1
             time.sleep(MAX_WAIT_TIME)
-            continue
+
         return data
 
     def _extract_latest_consumption_info(

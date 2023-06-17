@@ -19,6 +19,7 @@ from .const import (
     DEFAULT_NAME,
     DOMAIN,
     MANUFACTURER,
+    REQUEST_TIMEOUT,
     SOURCE_URL,
     SYNC_INTERVAL,
 )
@@ -50,7 +51,7 @@ class UteEnergyDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
     async def _async_update_data(self) -> dict[str:Any]:
         """Update the data."""
         data = {}
-        async with async_timeout.timeout(120):
+        async with async_timeout.timeout(REQUEST_TIMEOUT):
             try:
                 await self.hass.async_add_executor_job(self._ute_api.login)
                 data = await self._service_account_data()
