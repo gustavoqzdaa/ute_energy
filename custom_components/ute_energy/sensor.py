@@ -210,7 +210,10 @@ async def async_setup_entry(
             ]
         )
 
-    if coordinator.data.get(CURRENT_STATUS, None):
+    if all(
+        coordinator.data.get(key) is not None
+        for key in (CURRENT_STATUS, CURRENT_POWER, CURRENT_CONSUMPTION, CURRENT_VOLTAGE)
+    ):
         entities.extend(
             [
                 UteEnergySensor(

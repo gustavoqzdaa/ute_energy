@@ -321,15 +321,18 @@ class UteEnergy:
                 latest_reading = content[DATA][READINGS]
 
                 for status in latest_reading:
-                    if status[VALOR] == "true":
-                        status[VALOR] = True
+                    if status[VALOR]:
+                        if status[VALOR] == "true":
+                            status[VALOR] = True
+                        data[status[CONSUMPTION_ATTR]] = status[VALOR]
 
-                    data[status[CONSUMPTION_ATTR]] = status[VALOR]
-
-                current_power = float(data[CURRENT_VOLTAGE]) * float(
-                    data[CURRENT_CONSUMPTION]
-                )
-                data.update({CURRENT_POWER: current_power})
+                if data.get(CURRENT_VOLTAGE, None) and data.get(
+                    CURRENT_CONSUMPTION, None
+                ):
+                    current_power = float(data[CURRENT_VOLTAGE]) * float(
+                        data[CURRENT_CONSUMPTION]
+                    )
+                    data.update({CURRENT_POWER: current_power})
                 continue
 
             count += 1
