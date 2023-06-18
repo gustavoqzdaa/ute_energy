@@ -248,19 +248,20 @@ class UteEnergy:
         path = ENDPOINTS[INVOICE_INFO].format(account_id)
         url = f"{BASE_URL}/{path}"
 
-        data: dict[str, Any] = {}
+        data: dict[str, Any] = {
+            LATEST_INVOICE: None,
+            MONTH_CHARGES: 0,
+        }
         content = self._call_ute_api("GET", url, "Retrieve latest invoice info")
 
         if content[RESPONSE_STATUS]:
             invoices = content[DATA][INVOICES]
-            latest_invoice = self._extract_latest_invoice_info(invoices)
-            _month = convert_number_to_month(latest_invoice[MONTH])
-            data.update(
-                {
-                    LATEST_INVOICE: f"{_month} {latest_invoice[YEAR]}",
-                    MONTH_CHARGES: latest_invoice[MONTH_CHARGES],
-                }
-            )
+            if len(invoices) > 0:
+                latest_invoice = self._extract_latest_invoice_info(invoices)
+                _month = convert_number_to_month(latest_invoice[MONTH])
+                data[LATEST_INVOICE] = f"{_month} {latest_invoice[YEAR]}"
+                data[MONTH_CHARGES] = latest_invoice[MONTH_CHARGES]
+
         return data
 
     def _extract_latest_invoice_info(
@@ -282,7 +283,7 @@ class UteEnergy:
         path = ENDPOINTS[REQUEST_CONSUMPTION].format(account_id)
         url = f"{BASE_URL}/{path}"
 
-        data: dict[str, Any] = {}
+        data: dict[str, Any] = {MONTH_CONSUMPTION: None}
         content = self._call_ute_api("GET", url, "Retrieve latest consumption")
 
         if content[RESPONSE_STATUS]:
@@ -290,7 +291,7 @@ class UteEnergy:
             latest_consumption = self._extract_latest_consumption_info(
                 active_consumption
             )
-            data.update({MONTH_CONSUMPTION: latest_consumption[VALUE]})
+            data[MONTH_CONSUMPTION] = latest_consumption[VALUE]
         return data
 
     def _is_remote_reading_available(self, account_id: str) -> bool:
@@ -350,7 +351,9 @@ class UteEnergy:
         latest_consumption: dict[str, Any] = {VALUE: 0}
 
         active_consumption_filtered = list(
-            filter(lambda x: x[ID] > 0, active_consumption)
+            filter(
+                lambda x: x.get(ID, None) is not None and x[ID] > 0, active_consumption
+            )
         )
         if (
             len(active_consumption_filtered) > 0
