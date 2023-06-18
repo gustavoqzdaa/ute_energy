@@ -171,16 +171,31 @@ async def async_setup_entry(
 
     tariff_plan = coordinator.data.get(CONTRACTED_TARIFF, None)
 
-    entities: list[AbstractUteEnergySensor] = [
-        UteEnergySensor(
-            name,
-            account_id,
-            f"{config_entry.unique_id}_{account_id}_{description.key}",
-            description,
-            coordinator,
+    entities: list[AbstractUteEnergySensor] = []
+
+    if all(
+        coordinator.data.get(key) is not None
+        for key in (
+            SERVICE_AGREEMENT_ID,
+            CONTRACTED_TARIFF,
+            CONTRACTED_VOLTAGE,
+            CONTRACTED_POWER_ON_PEAK,
+            CONTRACTED_POWER_ON_VALLEY,
+            CONTRACTED_POWER_ON_FLAT,
         )
-        for description in SENSOR_TYPES_COMMON
-    ]
+    ):
+        entities.extend(
+            [
+                UteEnergySensor(
+                    name,
+                    account_id,
+                    f"{config_entry.unique_id}_{account_id}_{description.key}",
+                    description,
+                    coordinator,
+                )
+                for description in SENSOR_TYPES_COMMON
+            ]
+        )
 
     if tariff_plan in (DOUBLE_TARIFF, TRIPLE_TARIFF):
         entities.extend(

@@ -196,17 +196,20 @@ class UteEnergy:
 
         data: dict[str, Any] = {}
         content = self._call_ute_api("GET", url, "Retrieve service agreement")
-        agreement_info = content[DATA][AGREEMENT_INFO]
-        data.update(
-            {
-                SERVICE_AGREEMENT_ID: agreement_info[SERVICE_AGREEMENT_ID],
-                CONTRACTED_TARIFF: agreement_info[CONTRACTED_TARIFF],
-                CONTRACTED_VOLTAGE: agreement_info[CONTRACTED_VOLTAGE],
-                CONTRACTED_POWER_ON_PEAK: agreement_info[CONTRACTED_POWER_ON_PEAK],
-                CONTRACTED_POWER_ON_VALLEY: agreement_info[CONTRACTED_POWER_ON_VALLEY],
-                CONTRACTED_POWER_ON_FLAT: agreement_info[CONTRACTED_POWER_ON_FLAT],
-            }
-        )
+        if content.get(DATA, None) and content[DATA].get(AGREEMENT_INFO, None):
+            agreement_info = content[DATA][AGREEMENT_INFO]
+            data.update(
+                {
+                    SERVICE_AGREEMENT_ID: agreement_info[SERVICE_AGREEMENT_ID],
+                    CONTRACTED_TARIFF: agreement_info[CONTRACTED_TARIFF],
+                    CONTRACTED_VOLTAGE: agreement_info[CONTRACTED_VOLTAGE],
+                    CONTRACTED_POWER_ON_PEAK: agreement_info[CONTRACTED_POWER_ON_PEAK],
+                    CONTRACTED_POWER_ON_VALLEY: agreement_info[
+                        CONTRACTED_POWER_ON_VALLEY
+                    ],
+                    CONTRACTED_POWER_ON_FLAT: agreement_info[CONTRACTED_POWER_ON_FLAT],
+                }
+            )
 
         return data
 
